@@ -13,6 +13,7 @@
 
 #include <common.h>
 #include <ui.h>
+#include <Block.h>
 
 /**
  * Defines how many game ticks should occur in one second, affecting how often
@@ -217,6 +218,23 @@ int main(/*int argc, char *argv[]*/){
 	cameraPos.y = 0;
 	cameraPos.z = 0;
 
+	//int meme = 0;
+
+	World world;
+	world.createChunk({0,0,0});
+	for(auto &c : world.chunk){
+		for(uint h = 0; h < CHUNK_HEIGHT; h++){
+			for(uint w = 0; w < CHUNK_WIDTH; w++){
+				for(uint d = 0; d < CHUNK_DEPTH; d++){
+					if(32 != 0)
+						c.block[h][w][d].color = {120,72,0};
+					else
+						c.block[h][w][d].color = {25,255,25};
+				}
+			}
+		}
+	}
+
 	gameRunning = true;
 	while(gameRunning){
 		mainLoop();
@@ -240,8 +258,8 @@ int main(/*int argc, char *argv[]*/){
 }
 
 void mainLoop(void){
-	//static float deltaTime;
-	//static unsigned int prevTime = 0;
+	static float deltaTime;
+	static unsigned int prevTime = 0;
 	static unsigned int prevPrevTime= 0,	// Used for timing operations
 						currentTime = 0;	//
 	
@@ -253,9 +271,9 @@ void mainLoop(void){
 	 * the entire game).
 	 */
 	
-	//prevTime	= currentTime;
+	prevTime	= currentTime;
 	currentTime = SDL_GetTicks();
-	//deltaTime	= currentTime - prevTime;
+	deltaTime	= currentTime - prevTime;
 
 	ui::handleEvents();
 	/*
@@ -266,7 +284,7 @@ void mainLoop(void){
 		logic();
 		prevPrevTime = currentTime;
 	}
-
+	std::cout << 1000/deltaTime << std::endl;
 	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
 	render();
 	

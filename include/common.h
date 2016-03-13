@@ -26,6 +26,10 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 
+const int CHUNK_WIDTH = 32;
+const int CHUNK_HEIGHT = 32;
+const int CHUNK_DEPTH = 32;
+
 typedef struct{
 	float x;
 	float y;
@@ -35,7 +39,19 @@ typedef struct{
 	float x;
 	float y;
 	float z;
+
+	/*vec3(float _x, float _y, float _z){
+		x = _x;
+		y = _y;
+		z = _z;
+	}*/
 }vec3;
+
+typedef struct{
+	float r;
+	float g;
+	float b;
+}Color;
 
 template<typename N, size_t s>
 size_t arrAmt(N (&)[s]){return s;}

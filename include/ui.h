@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+static const float sensitivity = .5;
+
 extern bool gameRunning;
 
 extern SDL_Window *window;
@@ -13,6 +15,7 @@ extern unsigned int SCREEN_WIDTH;
 
 namespace ui{
 	void handleEvents(){
+		const Uint8 *key = SDL_GetKeyboardState(NULL);
 		static SDL_Event e;
 		static float yrotrad;
 		// static int mx, my;
@@ -26,77 +29,41 @@ namespace ui{
 		//cameraRot.x += dy;
 		//cameraRot.y += dx;
 		while(SDL_PollEvent(&e)){
-			switch(e.type){
-			case SDL_QUIT:
+			if(e.type == SDL_QUIT){
 				gameRunning = false;
-				break;
-			case SDL_MOUSEMOTION:
-				cameraRot.x += float(e.motion.yrel)*.25;
-				cameraRot.y += float(e.motion.xrel)*.25;
+			}
+			if(e.type == SDL_MOUSEMOTION){
+				cameraRot.x += float(e.motion.yrel)*.25*sensitivity;
+				cameraRot.y += float(e.motion.xrel)*.25*sensitivity;
 				if(cameraRot.x < -85)cameraRot.x = -85;
 				if(cameraRot.x > 85)cameraRot.x = 85;
-				break;
-			/*case SDL_MOUSEBUTTONDOWN:
-				if((e.button.button & SDL_BUTTON_RIGHT) && dialogBoxExists)
-					dialogAdvance();
-				if((e.button.button & SDL_BUTTON_LEFT) && !dialogBoxExists)
-					player->inv->usingi = true;
-				break;*/
-			case SDL_KEYUP:
-				switch(e.key.keysym.sym){
-				case SDLK_ESCAPE:
-					gameRunning = false;
-					break;
-				}
-				break;
-			case SDL_KEYDOWN:
-				switch(e.key.keysym.sym){
-				case SDLK_LEFT:
-					//cameraRot.y-=2;
-					//if(cameraRot.y < -360)cameraRot.y+=360;
-					break;
-				case SDLK_RIGHT:
-					//cameraRot.y+=2;
-					//if(cameraRot.y > 360)cameraRot.y-=360;
-					break;
-				case SDLK_DOWN:
-					//cameraRot.x--;
-					break;
-				case SDLK_UP:
-					//cameraRot.x++;
-					break;
-				case SDLK_w:
-				    yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				    cameraPos.x += float(sin(yrotrad))*.2;
-				    cameraPos.z -= float(cos(yrotrad))*.2;
-					//cameraPos.z+=.5;
-					break;
-				case SDLK_s:
-					yrotrad = (cameraRot.y / 180 * 3.141592654f);
-					cameraPos.x -= float(sin(yrotrad))*.2;
-					cameraPos.z += float(cos(yrotrad))*.2;
-					//cameraPos.z-=.5;
-					break;
-				case SDLK_a:
-					yrotrad = (cameraRot.y / 180 * 3.141592654f);
-    				cameraPos.x -= float(cos(yrotrad))*.125;
-    				cameraPos.z -= float(sin(yrotrad))*.125;
-					//cameraPos.x-=.5;
-					break;
-				case SDLK_d:
-					yrotrad = (cameraRot.y / 180 * 3.141592654f);
-    				cameraPos.x += float(cos(yrotrad))*.125;
-    				cameraPos.z += float(sin(yrotrad))*.125;
-					//cameraPos.x+=.5;
-					break;
-				case SDLK_SPACE:
-					cameraPos.y+=.1;
-					break;
-				case SDLK_LCTRL:
-					cameraPos.y-=.1;
-					break;
-				}
-				break;
+			}
+			if(key[SDL_SCANCODE_ESCAPE]) gameRunning = false;
+			if(key[SDL_SCANCODE_W]){
+			    yrotrad = (cameraRot.y / 180 * 3.141592654f);
+			    cameraPos.x += float(sin(yrotrad))*.01;
+			    cameraPos.z -= float(cos(yrotrad))*.01;
+			}
+			if(key[SDL_SCANCODE_S]){
+				yrotrad = (cameraRot.y / 180 * 3.141592654f);
+				cameraPos.x -= float(sin(yrotrad))*.01;
+				cameraPos.z += float(cos(yrotrad))*.01;
+			}
+			if(key[SDL_SCANCODE_A]){
+				yrotrad = (cameraRot.y / 180 * 3.141592654f);
+				cameraPos.x -= float(cos(yrotrad))*.005;
+				cameraPos.z -= float(sin(yrotrad))*.005;
+			}
+			if(key[SDL_SCANCODE_D]){
+				yrotrad = (cameraRot.y / 180 * 3.141592654f);
+				cameraPos.x += float(cos(yrotrad))*.005;
+				cameraPos.z += float(sin(yrotrad))*.005;
+			}
+			if(key[SDL_SCANCODE_SPACE]){
+				cameraPos.y+=.1;
+			}
+			if(key[SDL_SCANCODE_LCTRL]){
+				cameraPos.y-=.1;
 			}
 		}
 	}
