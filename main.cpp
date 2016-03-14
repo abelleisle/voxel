@@ -15,6 +15,9 @@
 #include <ui.h>
 #include <Block.h>
 
+World world;
+
+
 /**
  * Defines how many game ticks should occur in one second, affecting how often
  * game logic is handled.
@@ -215,14 +218,17 @@ int main(/*int argc, char *argv[]*/){
 	cameraRot.y = 0;
 
 	cameraPos.x = 0;
-	cameraPos.y = 0;
+	cameraPos.y = 2;
 	cameraPos.z = 0;
 
 	//int meme = 0;
 
-	World world;
 	world.createChunk({0,0,0});
-	for(auto &c : world.chunk){
+	world.createChunk({32,0,0});
+	world.createChunk({64,0,0});
+	world.createChunk({96,0,0});
+	world.updateChunks();
+	/*for(auto &c : world.chunk){
 		for(uint h = 0; h < CHUNK_HEIGHT; h++){
 			for(uint w = 0; w < CHUNK_WIDTH; w++){
 				for(uint d = 0; d < CHUNK_DEPTH; d++){
@@ -233,7 +239,7 @@ int main(/*int argc, char *argv[]*/){
 				}
 			}
 		}
-	}
+	}*/
 
 	gameRunning = true;
 	while(gameRunning){
@@ -345,7 +351,7 @@ void render(){
 	//glOrtho(-SCREEN_WIDTH/2,SCREEN_WIDTH/2,-SCREEN_HEIGHT/2,SCREEN_HEIGHT/2,-1000,1000);
 	//glOrtho(-640,640,-360,360,1000,-1000);
 	//glFrustum(-640,640,-360,360,1000000000,100000);
-	perspectiveGl(45.0f,SCREEN_WIDTH/SCREEN_HEIGHT,0.1f,100.0f);
+	perspectiveGl(90.0f,SCREEN_WIDTH/SCREEN_HEIGHT,0.1f,100.0f);
 	//glFrustum(-1,1,-1,1,0, 20);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -386,7 +392,7 @@ void render(){
 	// 					200,0,200,	255,0,0,
 	// 					300,200,100,0,255,0};
 
-	static float f[] = {0,0,0,		0,255,255,
+	/*static float f[] = {0,0,0,		0,255,255,
 						1,0,0,		255,255,0,
 						1,0,-1,		0,0,255,
 						0,0,-1,		0,255,0,
@@ -402,43 +408,35 @@ void render(){
 									0,1,4,
 									1,2,4,
 									2,3,4,
-									3,0,4};
+									3,0,4};*/
 
 	/*static float t[] = {0,0,0,
 						100,0,0,
 						50,100,0};
 	static unsigned int ind[] = {0,1,2};*/
 
-	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-	//glDepthRange(0,1000000000000000);
+	for(auto &c : world.chunk[0][0]){
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
+		glEnable(GL_DEPTH_TEST);
+		//glEnable(GL_CULL_FACE);
+		//glCullFace(GL_BACK);
+		//glDepthRange(0,1000000000000000);
 
-	glVertexPointer(3,GL_FLOAT,6*sizeof(float),f);
-	glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
-	glDrawElements(GL_TRIANGLES,18,GL_UNSIGNED_INT,index);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		//glEnableClientState(GL_COLOR_ARRAY);
 
-	glVertexPointer(3,GL_FLOAT,6*sizeof(float),t);
-	glColorPointer(3,GL_FLOAT,6*sizeof(float),&t[3]);
-	glDrawElements(GL_TRIANGLES,18,GL_UNSIGNED_INT,index);
+		glVertexPointer(3,GL_FLOAT,6*sizeof(float),&c.verts[0]);
+		//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
+		glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
 
-	glEnableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+		//glVertexPointer(3,GL_FLOAT,6*sizeof(float),t);
+		//glColorPointer(3,GL_FLOAT,6*sizeof(float),&t[3]);
+		//glDrawElements(GL_TRIANGLES,18,GL_UNSIGNED_INT,index);
 
-	glColor3ub(255,255,255);
-	glBegin(GL_QUADS);
-		glVertex3f(5,0,0);
-		glVertex3f(6,0,0);
-		glVertex3f(6,2,0);
-		glVertex3f(5,2,0);
-		glVertex3f(5,2,0);
-		glVertex3f(6,2,0);
-		glVertex3f(6,2,1);
-		glVertex3f(5,2,1);
-	glEnd();
+		glEnableClientState(GL_COLOR_ARRAY);
+		glDisableClientState(GL_VERTEX_ARRAY);
+
+	}
 
 	/*
 	 * These next two function finish the rendering
