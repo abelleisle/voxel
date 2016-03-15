@@ -11,8 +11,8 @@ public:
 	void update();
 
 	vec3 loc;
-	//std::vector<float>verts;
-	//std::vector<uint>vertOrder;
+	std::vector<vec3>verts;
+	std::vector<uint>vertOrder;
 
 	std::string name;
 	uint id;

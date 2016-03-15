@@ -67,40 +67,29 @@ void Block::update(){
 	}
 	//near
 	if(blockN){
+
 		if(blockN->id != 0){
 			std::cout << "Something on the near" << std::endl;
-			std::cout << inChunk->verts.size() << std::endl;
-			std::cout << CHUNK_HEIGHT*CHUNK_WIDTH*CHUNK_DEPTH*3 << std::endl;
-			for(uint n = 0, v = 0; v < CHUNK_HEIGHT*CHUNK_WIDTH*CHUNK_DEPTH*3;v+=3,n++){
+			std::cout << inChunk->vertOrder.size() << std::endl;
+			inChunk->verts.push_back(loc.x);
+			inChunk->verts.push_back(loc.y);
+			inChunk->verts.push_back(loc.z);
+			inChunk->vertOrder.push_back(0+inChunk->vertOrder.size());
 
-				std::cout << "Bottom left" << std::endl;
-				if(	loc.x == inChunk->verts[v] && 
-					loc.y == inChunk->verts[v+1] && 
-					loc.z == inChunk->verts[v+2])
+			inChunk->verts.push_back(loc.x+1);
+			inChunk->verts.push_back(loc.y);
+			inChunk->verts.push_back(loc.z);
+			inChunk->vertOrder.push_back(1+inChunk->vertOrder.size());
 
-						inChunk->vertOrder.push_back(inChunk->vertOrderList[n]);
+			inChunk->verts.push_back(loc.x+1);
+			inChunk->verts.push_back(loc.y+1);
+			inChunk->verts.push_back(loc.z);
+			inChunk->vertOrder.push_back(2+inChunk->vertOrder.size());
 
-				std::cout << "Bottom right" << std::endl;
-				if(	loc.x+1 == inChunk->verts[v] && 
-					loc.y == inChunk->verts[v+1] && 
-					loc.z == inChunk->verts[v+2])
-
-						inChunk->vertOrder.push_back(inChunk->vertOrderList[n]);
-
-				std::cout << "Top right" << std::endl;
-				if(	loc.x+1 == inChunk->verts[v] && 
-					loc.y+1 == inChunk->verts[v+1] && 
-					loc.z == inChunk->verts[v+2])
-
-						inChunk->vertOrder.push_back(inChunk->vertOrderList[n]);
-
-				std::cout << "Top left" << std::endl;
-				if(	loc.x == inChunk->verts[v] && 
-					loc.y+1 == inChunk->verts[v+1] && 
-					loc.z == inChunk->verts[v+2])
-
-						inChunk->vertOrder.push_back(inChunk->vertOrderList[n]);	
-			}
+			inChunk->verts.push_back(loc.x);
+			inChunk->verts.push_back(loc.y+1);
+			inChunk->verts.push_back(loc.z);
+			inChunk->vertOrder.push_back(3+inChunk->vertOrder.size());
 		}
 	}
 	//left
@@ -148,19 +137,23 @@ Chunk::Chunk(){
 }
 
 Chunk::Chunk(vec3 l):loc(l){
-	verts.resize(0);
-	vertOrderList.resize(0);
-	uint num = 0;
+	//verts.resize(0);
+	//vertOrderList.resize(0);
+	//uint num = 0;
 	for(uint h = 0; h < (int)CHUNK_HEIGHT; h++){	
 		for(uint w = 0; w < (int)CHUNK_WIDTH; w++){
 			for(uint d = 0; d < (int)CHUNK_DEPTH; d++){
 				block[h][w][d].loc = {loc.x+(float)w,loc.y+(float)h,loc.z+(float)d};
+				if(h == CHUNK_HEIGHT)
+					block[h][w][d].color = {0,1,0};
+				else
+					block[h][w][d].color = {1,.5,.25};
 				block[h][w][d].id = 1;
 				block[h][w][d].inChunk = this;
 			}
 		}
 	}
-	for(uint h = 0; h <= (int)CHUNK_HEIGHT; h++){	
+	/*for(uint h = 0; h <= (int)CHUNK_HEIGHT; h++){	
 		for(uint w = 0; w <= (int)CHUNK_WIDTH; w++){
 			for(uint d = 0; d <= (int)CHUNK_DEPTH; d++){
 				verts.push_back(loc.x+(float)w);
@@ -170,7 +163,7 @@ Chunk::Chunk(vec3 l):loc(l){
 				num++;
 			}
 		}
-	}
+	}*/
 }
 
 void Chunk::updateBlocks(){

@@ -26,9 +26,9 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 
-const int CHUNK_WIDTH = 32;
-const int CHUNK_HEIGHT = 32;
-const int CHUNK_DEPTH = 32;
+const int CHUNK_WIDTH = 8;
+const int CHUNK_HEIGHT = 8;
+const int CHUNK_DEPTH = 8;
 
 typedef struct{
 	float x;
