@@ -223,10 +223,8 @@ int main(/*int argc, char *argv[]*/){
 
 	//int meme = 0;
 
-	world.createChunk({0,0,0});
-	//world.createChunk({32,0,0});
-	//world.createChunk({64,0,0});
-	//world.createChunk({96,0,0});
+	world.createChunk({32,0,0});
+	world.blockAt({32.0f,17.0f,6.0f})->update();
 	world.updateChunks();
 	/*for(auto &c : world.chunk){
 		for(uint h = 0; h < CHUNK_HEIGHT; h++){
@@ -290,8 +288,10 @@ void mainLoop(void){
 		logic();
 		prevPrevTime = currentTime;
 	}
-	if(deltaTime > 10){
-		std::cout << "Slow" << std::endl;
+
+	if(deltaTime >1000){
+		std::cout << "Holy hell" << std::endl;
+
 	}
 	//std::cout << 1000/deltaTime << std::endl;
 	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
@@ -417,44 +417,21 @@ void render(){
 						100,0,0,
 						50,100,0};
 	static unsigned int ind[] = {0,1,2};*/
+
+	/*
 	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_CULL_FACE);
+	//glCullFace(GL_BACK);
+	//glDepthRange(0,1000000000000000);
 
-	glColor3f(1.0f,1.0f,1.0f);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	//glEnableClientState(GL_COLOR_ARRAY);
 
-	auto c = world.chunk[0][0][0];
-	auto v = c.verts;
-		for(uint i = 0; i < v.size();i+=12){
-			std::cout << "draw" << std::endl;
-			glBegin(GL_QUADS);
-				glVertex3f(v[i],v[i+1],v[i+2]);
-				glVertex3f(v[i+3],v[i+4],v[i+5]);
-				glVertex3f(v[i+6],v[i+7],v[i+8]);
-				glVertex3f(v[i+9],v[i+10],v[i+11]);
-			glEnd();
-		}
-		/*for(auto &h : c.block){
-			for(auto &w : h){
-				for(auto &b : h){
-				}
-			}
-		}*/
-		//glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
-		//glDepthRange(0,1000000000000000);
 
-		glEnableClientState(GL_VERTEX_ARRAY);
-		//glEnableClientState(GL_COLOR_ARRAY);
-
-		glVertexPointer(3,GL_FLOAT,0,&c.verts[0]);
-		//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
-		glDrawElements(GL_QUADS,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
-
-		//glVertexPointer(3,GL_FLOAT,6*sizeof(float),t);
-		//glColorPointer(3,GL_FLOAT,6*sizeof(float),&t[3]);
-		//glDrawElements(GL_TRIANGLES,18,GL_UNSIGNED_INT,index);
-
-		//glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3,GL_FLOAT,6*sizeof(float),&c.verts[0]);
+	//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
+	glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
+	*/
 
 	/*
 	 * These next two function finish the rendering

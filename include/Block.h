@@ -7,31 +7,26 @@ class Chunk;
 
 class Block{
 public:
-	Block();
-	void update();
-
 	vec3 loc;
-	std::vector<vec3>verts;
-	std::vector<uint>vertOrder;
+	uint hash;
 
 	std::string name;
 	uint id;
 	Color color;
 
 	Chunk *inChunk;
+
+	Block();
+	Block(vec3 l);
+	void update();
 };
 
 class Chunk{
 public:
-	friend class Block;
-
-	Block block[CHUNK_HEIGHT][CHUNK_WIDTH][CHUNK_DEPTH];
+	std::unordered_map<uint, Block>block;
 
 	vec3 loc;
-	std::vector<float>verts;
-	std::vector<uint>vertOrder;
-	std::vector<uint>vertOrderList;
-
+	uint hash;
 
 	Chunk(vec3 l);
 	Chunk();
@@ -41,10 +36,10 @@ public:
 
 class World{
 public:
-	World();
 
-	std::vector<std::vector<std::vector<Chunk>>>chunk;
-	std::vector<std::vector<std::vector<Chunk>>>loadedChunks;
+	std::unordered_map<uint, Chunk>chunk;
+
+	World();
 
 	void createChunk(vec3 l);
 	void updateChunks();
