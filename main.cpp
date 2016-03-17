@@ -167,7 +167,7 @@ int main(/*int argc, char *argv[]*/){
 		std::cout << "The window failed to generate! SDL_Error: " << SDL_GetError() << std::endl;
         return -1;
     }
-
+//
     /*
      * Create the SDL OpenGL context. Once created, we are allowed to use OpenGL functions.
      * Saving this context to mainGLContext does not appear to be necessary as mainGLContext
@@ -215,7 +215,7 @@ int main(/*int argc, char *argv[]*/){
 	****     GAMELOOP      ****
 	**************************/
 
-	std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
+	// std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
 
 	cameraRot.x = 0;
 	cameraRot.y = 0;
@@ -231,7 +231,10 @@ int main(/*int argc, char *argv[]*/){
 	//int meme = 0;
 
 	world.createChunk({0,0,0});
-	//world.blockAt({34.0f,17.0f,6.0f})->update();
+	world.createChunk({16,0,0});
+	world.createChunk({0,0,16});
+	world.createChunk({16,0,16});
+	world.createChunk({16,16,16});
 	world.updateChunks();
 	/*for(auto &c : world.chunk){
 		for(uint h = 0; h < CHUNK_HEIGHT; h++){
@@ -288,10 +291,10 @@ void mainLoop(void){
 
 	cameraPos = player.loc;
 	cameraPos.y = player.loc.y + 1.75;
-	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y-1)), player.loc.z})){
+	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y)), player.loc.z})){
 		player.loc.y -= .01;
 	}else{
-		player.loc.y = (int)player.loc.y;
+		player.loc.y = (int)player.loc.y+1;
 	}
 
 	ui::handleEvents();

@@ -3,6 +3,7 @@
 extern World world;
 
 std::mutex mtx;
+ThreadPool thr(50);
 
 Block::Block(){
 
@@ -67,7 +68,6 @@ bool World::blockIsAir(vec3 l){
 
 void Block::update(){
 	//RIGHT
-	std::thread right([&]{
 		if(world.blockIsAir({loc.x+1,loc.y,loc.z})){
 			mtx.lock();
 			//std::cout << "Air to right" << std::endl;
@@ -84,10 +84,8 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
 
 	//LEFT
-	std::thread left([&]{
 		if(world.blockIsAir({loc.x-1,loc.y,loc.z})){
 			mtx.lock();
 			//std::cout << "Air to right" << std::endl;
@@ -104,10 +102,8 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
 
 	//TOP
-	std::thread top([&]{
 		if(world.blockIsAir({loc.x,loc.y+1,loc.z})){
 			mtx.lock();
 			verts.push_back({loc.x,loc.y+1,loc.z});
@@ -123,10 +119,8 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
 
 	//BOTTOM
-	std::thread bottom([&]{
 		if(world.blockIsAir({loc.x,loc.y-1,loc.z})){
 			mtx.lock();
 			verts.push_back({loc.x,loc.y,loc.z});
@@ -142,10 +136,8 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
 
 	//NEAR
-	std::thread near([&]{
 		if(world.blockIsAir({loc.x,loc.y,loc.z-1})){
 			mtx.lock();
 			verts.push_back({loc.x,loc.y,loc.z});
@@ -161,10 +153,8 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
 
 	//FAR
-	std::thread far([&]{
 		if(world.blockIsAir({loc.x,loc.y,loc.z+1})){
 			mtx.lock();
 			verts.push_back({loc.x,loc.y,loc.z+1});
@@ -180,15 +170,6 @@ void Block::update(){
 		}else{
 			//std::cout << "No air" << std::endl;
 		}
-	});
-	
-	right.join();
-	left.join();
-	top.join();
-	bottom.join();
-	near.join();
-	far.join();
-
 }
 
 Chunk::Chunk(){
@@ -213,8 +194,6 @@ Chunk::Chunk(vec3 l):loc(l){
 }
 
 void Chunk::updateBlocks(){
-	ThreadPool thr(50);
-
 	for(float y = loc.y; y < loc.y + CHUNK_HEIGHT; y++){
 		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
 			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
@@ -264,7 +243,7 @@ void Chunk::updateBlocks(){
 }
 
 World::World(){
-	
+
 }
 
 void World::createChunk(vec3 l){
@@ -274,7 +253,7 @@ void World::createChunk(vec3 l){
 void World::updateChunks(){
 	uint a = 0;
 	for(auto &c : chunk){
-		c.second.updateBlocks();
+		thr.Enqueue([&]{c.second.updateBlocks();});
 		std::cout << "Chunk: " << a++ << std::endl;
 	}
 }
