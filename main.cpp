@@ -96,7 +96,7 @@ void mainLoop(void);
 int main(/*int argc, char *argv[]*/){
 	// *argv = (char *)argc;
 	SDL_GLContext mainGLContext = NULL;
-	
+
 	gameRunning=false;
 
 	/**
@@ -198,15 +198,15 @@ int main(/*int argc, char *argv[]*/){
 	 * setup the alpha channel for textures/transparency, and finally hide the system's mouse
 	 * cursor so that we may draw our own.
 	 */
-	
+
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetSwapInterval(0);
-	
+
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
+
 	SDL_SetWindowGrab(window,SDL_TRUE);
 	//SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -214,7 +214,7 @@ int main(/*int argc, char *argv[]*/){
 	/**************************
 	****     GAMELOOP      ****
 	**************************/
-	
+
 	std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
 
 	cameraRot.x = 0;
@@ -250,21 +250,21 @@ int main(/*int argc, char *argv[]*/){
 	while(gameRunning){
 		mainLoop();
 	}
-	
+
 	/**************************
 	****   CLOSE PROGRAM   ****
 	**************************/
-	
+
     /*
      * Close the window and free resources
      */
-    
+
     Mix_HaltMusic();
     Mix_CloseAudio();
 
     SDL_GL_DeleteContext(mainGLContext);
     SDL_DestroyWindow(window);
-    
+
     return 0; // Calls everything passed to atexit
 }
 
@@ -273,15 +273,15 @@ void mainLoop(void){
 	static unsigned int prevTime = 0;
 	static unsigned int prevPrevTime= 0,	// Used for timing operations
 						currentTime = 0;	//
-	
+
 	if(!currentTime)						// Initialize currentTime if it hasn't been
 		currentTime=SDL_GetTicks();
-	
+
 	/*
 	 * Update timing values. This is crucial to calling logic and updating the window (basically
 	 * the entire game).
 	 */
-	
+
 	prevTime	= currentTime;
 	currentTime = SDL_GetTicks();
 	deltaTime	= currentTime - prevTime;
@@ -309,7 +309,7 @@ void mainLoop(void){
 	//std::cout << 1000/deltaTime << std::endl;
 	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
 	render();
-	
+
 }
 
 void perspectiveGl(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar){
@@ -336,7 +336,7 @@ void render(){
 	 *
 	 *	glMatrixMode	This changes our current stacks mode so the drawings below
 	 *					it can take on certain traits.
-	 *	
+	 *
 	 *	GL_PROJECTION	This is the matrix mode that sets the cameras position,
 	 *					GL_PROJECTION is made up of a stack with two matrices which
 	 *					means we can make up to 2 seperate changes to the camera.
@@ -360,7 +360,7 @@ void render(){
 	 *	glLoadIdentity	This scales the current matrix back to the origin so the
 	 *					translations are seen normally on a stack.
 	 */
-	
+
 	glMatrixMode(GL_PROJECTION);
 	//glPushMatrix();
 	glLoadIdentity();
@@ -372,7 +372,7 @@ void render(){
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glPushMatrix();
-	
+
 	/*
 	 * glPushAttrib		This passes attributes to the renderer so it knows what it can
 	 *					render. In our case, GL_DEPTH_BUFFER_BIT allows the renderer to
@@ -383,7 +383,7 @@ void render(){
 	 * glClear 			This clears the new matrices using the type passed. In our case:
 	 *					GL_COLOR_BUFFER_BIT allows the matrices to have color on them
 	 */
-	
+
 	glPushAttrib(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -395,7 +395,7 @@ void render(){
 	/**************************
 	**** RENDER STUFF HERE ****
 	**************************/
-		
+
 	// static float f[] = {0,0,0,		0,255,255,
 	// 					100,0,0,	255,255,0,
 	// 					100,0,100,	0,0,255,
@@ -430,7 +430,7 @@ void render(){
 						100,0,0,
 						50,100,0};
 	static unsigned int ind[] = {0,1,2};*/
-	
+
 	glEnable(GL_DEPTH_TEST);
 	/*
 	//glEnable(GL_CULL_FACE);
