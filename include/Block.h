@@ -10,6 +10,9 @@ public:
 	vec3 loc;
 	uint hash;
 
+	std::vector<vec3>verts;
+	std::vector<Color>colors;
+
 	std::string name;
 	uint id;
 	Color color;
@@ -45,6 +48,7 @@ public:
 	void updateChunks();
 
 	Block* blockAt(vec3);
+	bool blockIsAir(vec3);
 };
 
 //ID

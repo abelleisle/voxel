@@ -12,10 +12,13 @@
 #include <thread>
 
 #include <common.h>
-#include <ui.h>
 #include <Block.h>
+#include <Player.h>
 
 World world;
+Player player;
+
+#include <ui.h>
 
 
 /**
@@ -221,10 +224,14 @@ int main(/*int argc, char *argv[]*/){
 	cameraPos.y = 2;
 	cameraPos.z = 0;
 
+	player.loc.x = 5;
+	player.loc.y = 9;
+	player.loc.z = 5;
+
 	//int meme = 0;
 
-	world.createChunk({32,0,0});
-	world.blockAt({32.0f,17.0f,6.0f})->update();
+	world.createChunk({0,0,0});
+	//world.blockAt({34.0f,17.0f,6.0f})->update();
 	world.updateChunks();
 	/*for(auto &c : world.chunk){
 		for(uint h = 0; h < CHUNK_HEIGHT; h++){
@@ -278,6 +285,14 @@ void mainLoop(void){
 	prevTime	= currentTime;
 	currentTime = SDL_GetTicks();
 	deltaTime	= currentTime - prevTime;
+
+	cameraPos = player.loc;
+	cameraPos.y = player.loc.y + 1.75;
+	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y-1)), player.loc.z})){
+		player.loc.y -= .01;
+	}else{
+		player.loc.y = (int)player.loc.y;
+	}
 
 	ui::handleEvents();
 	/*
@@ -417,9 +432,8 @@ void render(){
 						100,0,0,
 						50,100,0};
 	static unsigned int ind[] = {0,1,2};*/
-
-	/*
 	glEnable(GL_DEPTH_TEST);
+	/*
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_BACK);
 	//glDepthRange(0,1000000000000000);
@@ -432,6 +446,22 @@ void render(){
 	//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
 	glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
 	*/
+	for(auto &c : world.chunk){
+		for(auto &b : c.second.block){
+			glBegin(GL_QUADS);
+			for(uint i = 0; i < b.second.verts.size();i++){
+				glColor3f(	b.second.colors[i].r,
+							b.second.colors[i].g,
+							b.second.colors[i].b);
+				glVertex3f(	b.second.verts[i].x,
+							b.second.verts[i].y,
+							b.second.verts[i].z);
+			}
+			for(auto &v : b.second.verts)
+				glVertex3f(v.x,v.y,v.z);
+			glEnd();
+		}
+	}
 
 	/*
 	 * These next two function finish the rendering

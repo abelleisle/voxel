@@ -2,6 +2,8 @@
 
 extern World world;
 
+std::mutex mtx;
+
 Block::Block(){
 
 }
@@ -14,81 +16,179 @@ Block::Block(vec3 l){
 }
 
 Block* World::blockAt(vec3 l){
-	std::cout << l.x << "," << l.y << "," << l.z << std::endl;
+	//std::cout << l.x << "," << l.y << "," << l.z << std::endl;
 
 	vec3 buf;
 	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
 	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
 	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
-	std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
+	//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
 
-	std::unordered_map<uint, Chunk>::const_iterator chu = chunk.find(vec3Hash(buf));
+	std::unordered_map<uint, Chunk>::iterator chu = chunk.find(vec3Hash(buf));
 
 	if (chu == chunk.end() )
 		return nullptr;
 
 	Chunk c = chu->second;
-	std::unordered_map<uint, Block>::const_iterator blo = c.block.find(vec3Hash(l));
+	std::unordered_map<uint, Block>::iterator blo = c.block.find(vec3Hash(l));
 
 	if (blo == c.block.end() )
 		return nullptr;
 
-	std::cout << "Crashb" << std::endl;
-	Block *b = (Block*)&blo->second;
-	std::cout << "Crasha" << std::endl;
-	std::cout << b->loc.x << std::endl;
+	Block *b = &blo->second;
 	return b;
 }
 
+bool World::blockIsAir(vec3 l){
+	//mtx.lock();
+	//std::cout << l.x << "," << l.y << "," << l.z << std::endl;
+
+	vec3 buf;
+	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
+	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
+	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
+
+	//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
+
+	std::unordered_map<uint, Chunk>::iterator chu = chunk.find(vec3Hash(buf));
+
+	if (chu == chunk.end() )
+		return true;
+
+	Chunk c = chu->second;
+	std::unordered_map<uint, Block>::iterator blo = c.block.find(vec3Hash(l));
+
+	if (blo == c.block.end() )
+		return true;
+	//mtx.unlock();
+	return false;
+}
+
 void Block::update(){
-	std::cout << "Crash" << std::endl;
+	//RIGHT
+	std::thread right([&]{
+		if(world.blockIsAir({loc.x+1,loc.y,loc.z})){
+			mtx.lock();
+			//std::cout << "Air to right" << std::endl;
+			verts.push_back({loc.x+1,loc.y,loc.z});
+			verts.push_back({loc.x+1,loc.y,loc.z+1});
+			verts.push_back({loc.x+1,loc.y+1,loc.z+1});
+			verts.push_back({loc.x+1,loc.y+1,loc.z});
 
-	Block 	*blockR = world.blockAt({loc.x+1,loc.y,loc.z});
-	std::cout << "f" << std::endl;
-	Block 	*blockL = world.blockAt({loc.x-1,loc.y,loc.z}),
-			*blockT = world.blockAt({loc.x,loc.y+1,loc.z}),
-			*blockB = world.blockAt({loc.x,loc.y-1,loc.z}),
-			*blockN = world.blockAt({loc.x,loc.y,loc.z+1}),
-			*blockF = world.blockAt({loc.x,loc.y,loc.z-1});
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
+		}
+	});
 
-	std::cout << "Crash2" << std::endl;
-	//right
-	if(blockR){
-		if(blockR->id != 0){
-			std::cout << "Something on the right" << std::endl;
+	//LEFT
+	std::thread left([&]{
+		if(world.blockIsAir({loc.x-1,loc.y,loc.z})){
+			mtx.lock();
+			//std::cout << "Air to right" << std::endl;
+			verts.push_back({loc.x,loc.y,loc.z});
+			verts.push_back({loc.x,loc.y,loc.z+1});
+			verts.push_back({loc.x,loc.y+1,loc.z+1});
+			verts.push_back({loc.x,loc.y+1,loc.z});
+
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
 		}
-	}
-	//top
-	if(blockT){
-		if(blockT->id != 0){
-			std::cout << "Something on the top" << std::endl;
+	});
+
+	//TOP
+	std::thread top([&]{
+		if(world.blockIsAir({loc.x,loc.y+1,loc.z})){
+			mtx.lock();
+			verts.push_back({loc.x,loc.y+1,loc.z});
+			verts.push_back({loc.x+1,loc.y+1,loc.z});
+			verts.push_back({loc.x+1,loc.y+1,loc.z+1});
+			verts.push_back({loc.x,loc.y+1,loc.z+1});
+
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
 		}
-	}
-	//near
-	if(blockN){
-		if(blockN->id != 0){
-			std::cout << "Something on the near" << std::endl;
+	});
+
+	//BOTTOM
+	std::thread bottom([&]{
+		if(world.blockIsAir({loc.x,loc.y-1,loc.z})){
+			mtx.lock();
+			verts.push_back({loc.x,loc.y,loc.z});
+			verts.push_back({loc.x+1,loc.y,loc.z});
+			verts.push_back({loc.x+1,loc.y,loc.z+1});
+			verts.push_back({loc.x,loc.y,loc.z+1});
+
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
 		}
-	}
-	//left
-	if(blockL){
-		if(blockL->id != 0){
-			std::cout << "Something on the left" << std::endl;
+	});
+
+	//NEAR
+	std::thread near([&]{
+		if(world.blockIsAir({loc.x,loc.y,loc.z-1})){
+			mtx.lock();
+			verts.push_back({loc.x,loc.y,loc.z});
+			verts.push_back({loc.x+1,loc.y,loc.z});
+			verts.push_back({loc.x+1,loc.y+1,loc.z});
+			verts.push_back({loc.x,loc.y+1,loc.z});
+
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
 		}
-	}
-	//bottom
-	if(blockB){
-		if(blockB->id != 0){
-			std::cout << "Somthing on the bottom" << std::endl;
+	});
+
+	//FAR
+	std::thread far([&]{
+		if(world.blockIsAir({loc.x,loc.y,loc.z+1})){
+			mtx.lock();
+			verts.push_back({loc.x,loc.y,loc.z+1});
+			verts.push_back({loc.x+1,loc.y,loc.z+1});
+			verts.push_back({loc.x+1,loc.y+1,loc.z+1});
+			verts.push_back({loc.x,loc.y+1,loc.z+1});
+
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			colors.push_back(color);
+			mtx.unlock();
+		}else{
+			//std::cout << "No air" << std::endl;
 		}
-	}
-	//far
-	if(blockF){
-		if(blockF->id != 0){
-			std::cout << "Something on the far" << std::endl;
-		}
-	}
+	});
+	
+	right.join();
+	left.join();
+	top.join();
+	bottom.join();
+	near.join();
+	far.join();
+
 }
 
 Chunk::Chunk(){
@@ -102,6 +202,11 @@ Chunk::Chunk(vec3 l):loc(l){
 		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
 			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
 				block.emplace(vec3Hash({x,y,z}),Block({x,y,z}));
+				if(y == CHUNK_HEIGHT-1){
+					block.at(vec3Hash({x,y,z})).color = {0.0f,1.0f,0.0f};
+				}else{
+					block.at(vec3Hash({x,y,z})).color = {1.0f,0.25f,0.25f};
+				}
 			}
 
 		}
@@ -109,7 +214,54 @@ Chunk::Chunk(vec3 l):loc(l){
 }
 
 void Chunk::updateBlocks(){
-	
+	//ThreadPool thr(50);
+
+	for(float y = loc.y; y < loc.y + CHUNK_HEIGHT; y++){
+		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
+			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
+				block.at(vec3Hash({x,y,z})).update();
+			}
+
+		}
+	}
+
+	/*thr.Enqueue([&]{
+	for(float y = loc.y; y < loc.y + (CHUNK_HEIGHT/4); y++){
+		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
+			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
+				block.at(vec3Hash({x,y,z})).update();
+			}
+
+		}
+	}
+
+	for(float y = loc.y + (CHUNK_HEIGHT/4); y < loc.y + (CHUNK_HEIGHT/4)*2; y++){
+		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
+			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
+				block.at(vec3Hash({x,y,z})).update();
+			}
+
+		}
+	}
+
+	for(float y = loc.y + (CHUNK_HEIGHT/4)*2; y < loc.y + (CHUNK_HEIGHT/4)*3; y++){
+		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
+			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
+				block.at(vec3Hash({x,y,z})).update();
+			}
+
+		}
+	}
+
+	for(float y = loc.y + (CHUNK_HEIGHT/4)*3; y < loc.y + (CHUNK_HEIGHT/4)*4; y++){
+		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
+			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
+				block.at(vec3Hash({x,y,z})).update();
+			}
+
+		}
+	}
+});*/
 }
 
 World::World(){
@@ -121,5 +273,9 @@ void World::createChunk(vec3 l){
 }
 
 void World::updateChunks(){
-	
+	uint a = 0;
+	for(auto &c : chunk){
+		c.second.updateBlocks();
+		std::cout << "Chunk: " << a++ << std::endl;
+	}
 }

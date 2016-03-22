@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include <common.h>
+
 static const float sensitivity = .5;
 
 extern bool gameRunning;
@@ -12,6 +14,8 @@ extern vec2 cameraRot;
 
 extern unsigned int SCREEN_HEIGHT;
 extern unsigned int SCREEN_WIDTH;
+
+extern Player player;
 
 namespace ui{
 	void handleEvents(){
@@ -41,29 +45,32 @@ namespace ui{
 			if(key[SDL_SCANCODE_ESCAPE]) gameRunning = false;
 			if(key[SDL_SCANCODE_W]){
 			    yrotrad = (cameraRot.y / 180 * 3.141592654f);
-			    cameraPos.x += float(sin(yrotrad))*.01;
-			    cameraPos.z -= float(cos(yrotrad))*.01;
+			    player.loc.x += float(sin(yrotrad))*.05;
+			    player.loc.z -= float(cos(yrotrad))*.05;
 			}
 			if(key[SDL_SCANCODE_S]){
 				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				cameraPos.x -= float(sin(yrotrad))*.01;
-				cameraPos.z += float(cos(yrotrad))*.01;
+				player.loc.x -= float(sin(yrotrad))*.05;
+				player.loc.z += float(cos(yrotrad))*.05;
 			}
 			if(key[SDL_SCANCODE_A]){
 				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				cameraPos.x -= float(cos(yrotrad))*.005;
-				cameraPos.z -= float(sin(yrotrad))*.005;
+				player.loc.x -= float(cos(yrotrad))*.01;
+				player.loc.z -= float(sin(yrotrad))*.01;
 			}
 			if(key[SDL_SCANCODE_D]){
 				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				cameraPos.x += float(cos(yrotrad))*.005;
-				cameraPos.z += float(sin(yrotrad))*.005;
+				player.loc.x += float(cos(yrotrad))*.01;
+				player.loc.z += float(sin(yrotrad))*.01;
 			}
 			if(key[SDL_SCANCODE_SPACE]){
-				cameraPos.y+=.1;
+				player.loc.y+=.5;
 			}
 			if(key[SDL_SCANCODE_LCTRL]){
-				cameraPos.y-=.1;
+				player.loc.y-=.1;
+			}
+			if(key[SDL_SCANCODE_P]){
+				player.breaku = true;
 			}
 		}
 	}

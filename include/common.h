@@ -19,6 +19,8 @@
 #include <future>
 #include <algorithm>
 #include <unordered_map>
+#include <memory>
+//#include <threadpool.h>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -28,9 +30,9 @@
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_mixer.h>
 
-const int CHUNK_WIDTH = 8;
-const int CHUNK_HEIGHT = 8;
-const int CHUNK_DEPTH = 8;
+const int CHUNK_WIDTH = 16;
+const int CHUNK_HEIGHT = 16;
+const int CHUNK_DEPTH = 16;
 
 typedef struct{
 	float x;
