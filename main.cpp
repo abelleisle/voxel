@@ -232,22 +232,11 @@ int main(/*int argc, char *argv[]*/){
 
 	world.createChunk({0,0,0});
 	world.createChunk({16,0,0});
-	world.createChunk({0,0,16});
-	world.createChunk({16,0,16});
-	world.createChunk({16,16,16});
+	//world.createChunk({32,0,0});
+	//world.createChunk({0,0,16});
+	//world.createChunk({16,0,16});
+	//world.createChunk({16,16,16});
 	world.updateChunks();
-	/*for(auto &c : world.chunk){
-		for(uint h = 0; h < CHUNK_HEIGHT; h++){
-			for(uint w = 0; w < CHUNK_WIDTH; w++){
-				for(uint d = 0; d < CHUNK_DEPTH; d++){
-					if(32 != 0)
-						c.block[h][w][d].color = {120,72,0};
-					else
-						c.block[h][w][d].color = {25,255,25};
-				}
-			}
-		}
-	}*/
 
 	gameRunning = true;
 	while(gameRunning){
@@ -455,19 +444,23 @@ void render(){
 	glDisableClientState(GL_VERTEX_ARRAY);
 	*/
 	for(auto &c : world.chunk){
-		for(auto &b : c.second.block){
-			glBegin(GL_QUADS);
-			for(uint i = 0; i < b.second.verts.size();i++){
-				glColor3f(	b.second.colors[i].r,
-							b.second.colors[i].g,
-							b.second.colors[i].b);
-				glVertex3f(	b.second.verts[i].x,
-							b.second.verts[i].y,
-							b.second.verts[i].z);
+		for(auto &bx : c.second.block){
+			for(auto &by : bx){
+				for(auto &b : by){
+					glBegin(GL_QUADS);
+					for(uint i = 0; i < b.verts.size();i++){
+						glColor3f(	b.colors[i].r,
+									b.colors[i].g,
+									b.colors[i].b);
+						glVertex3f(	b.verts[i].x,
+									b.verts[i].y,
+									b.verts[i].z);
+					}
+					/*for(auto &v : b.verts)
+						glVertex3f(v.x,v.y,v.z);*/
+					glEnd();
+				}
 			}
-			for(auto &v : b.second.verts)
-				glVertex3f(v.x,v.y,v.z);
-			glEnd();
 		}
 	}
 
