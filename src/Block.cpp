@@ -3,6 +3,7 @@
 extern World world;
 
 std::mutex mtx;
+std::mutex blockMtx;
 ThreadPool thr(50);
 
 Block::Block(){
@@ -18,59 +19,50 @@ Block::Block(vec3 l){
 }
 
 Block* World::blockAt(vec3 l){
-	//std::cout << l.x << "," << l.y << "," << l.z << std::endl;
-/*
 	vec3 buf;
 	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
 	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
 	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
-	//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
+	uint hash = vec3Hash(buf);
+	Chunk *chunkPtr = nullptr;
 
-	std::unordered_map<uint, Chunk>::iterator chu = chunk.find(vec3Hash(buf));
-
-	if (chu == chunk.end() )
+	for(auto &c : chunk){
+		if(c.second.hash == hash){
+			chunkPtr = &c.second;
+		}
+	}
+	if(chunkPtr==nullptr)
 		return nullptr;
 
-	Chunk c = chu->second;
-	std::unordered_map<uint, Block>::iterator blo = c.block.find(vec3Hash(l));
-
-	if (blo == c.block.end() )
-		return nullptr;
-		*/
-	Block *b = new Block(l);
-	return b;
+	return &chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z];
 }
 
 bool World::blockIsAir(vec3 l){
-	//mtx.lock();
-	//std::cout << l.x << "," << l.y << "," << l.z << std::endl;
-
 	vec3 buf;
 	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
 	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
 	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
-	//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
+	uint hash = vec3Hash(buf);
+	Chunk *chunkPtr = nullptr;
 
-	std::unordered_map<uint, Chunk>::iterator chu = chunk.find(vec3Hash(buf));
-
-	if(chu == chunk.end())
+	for(auto &c : chunk){
+		if(c.second.hash == hash){
+			chunkPtr = &c.second;
+		}
+	}
+	if(chunkPtr==nullptr)
 		return true;
 
-	Chunk c = chu->second;
-	//std::unordered_map<uint, Block>::iterator blo = c.block.find(vec3Hash(l));
-
-	//if (blo == c.block.end() )
-		//return true;
-
-	if(c.block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type==AIR)
+	if(chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type==AIR)
 		return true;
-	//mtx.unlock();
+
 	return false;
 }
 
-void Block::update(){
+void Block::updateFaces(){
+	if(this->type == AIR)return;
 	//RIGHT
 		if(world.blockIsAir({loc.x+1,loc.y,loc.z})){
 			mtx.lock();
@@ -196,7 +188,7 @@ Chunk::Chunk(vec3 l):loc(l){
 		for(float z = 0; z < CHUNK_DEPTH; z++){
 			for(float x = 0; x < CHUNK_WIDTH; x++){
 				//block.emplace(vec3Hash({x,y,z}),Block({x,y,z}));
-				std::cout << "Setting loc" << std::endl;
+				/*std::cout << "Setting loc" << std::endl;
 				std::cout << x << "," << y << "," << z << std::endl;
 				block[x][y][z].loc = {x+loc.x,y+loc.y,z+loc.z};
 				std::cout << "Setting type" << std::endl;
@@ -206,7 +198,8 @@ Chunk::Chunk(vec3 l):loc(l){
 					block[x][y][z].color = {0.0f,1.0f,0.0f};
 				}else{
 					block[x][y][z].color = {1.0f,0.25f,0.25f};
-				}
+				}*/
+				block[x][y][z] = this->inWorld->generateBlock({x+loc.x,y+loc.y,z+loc.z});
 			}
 
 		}
@@ -218,57 +211,43 @@ void Chunk::updateBlocks(){
 	for(float y = 0; y < CHUNK_HEIGHT; y++){
 		for(float z = 0; z < CHUNK_DEPTH; z++){
 			for(float x = 0; x < CHUNK_WIDTH; x++){
-				block[x][y][z].update();
+				block[x][y][z].updateFaces();
 			}
 
 		}
 	}
-
-	/*thr.Enqueue([&]{
-	for(float y = loc.y; y < loc.y + (CHUNK_HEIGHT/4); y++){
-		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
-			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
-				block.at(vec3Hash({x,y,z})).update();
-			}
-
-		}
-	}
-
-	for(float y = loc.y + (CHUNK_HEIGHT/4); y < loc.y + (CHUNK_HEIGHT/4)*2; y++){
-		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
-			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
-				block.at(vec3Hash({x,y,z})).update();
-			}
-
-		}
-	}
-
-	for(float y = loc.y + (CHUNK_HEIGHT/4)*2; y < loc.y + (CHUNK_HEIGHT/4)*3; y++){
-		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
-			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
-				block.at(vec3Hash({x,y,z})).update();
-			}
-
-		}
-	}
-
-	for(float y = loc.y + (CHUNK_HEIGHT/4)*3; y < loc.y + (CHUNK_HEIGHT/4)*4; y++){
-		for(float z = loc.z; z < loc.z + CHUNK_DEPTH; z++){
-			for(float x = loc.x; x < loc.x + CHUNK_WIDTH; x++){
-				block.at(vec3Hash({x,y,z})).update();
-			}
-
-		}
-	}
-});*/
 }
 
 World::World(){
 
 }
 
+Block World::generateBlock(vec3 l){
+	Block b;
+
+	std::cout << l.x << "," << floor(4*sin(.25*(l.x + 6)))+12 << std::endl;
+	if(l.y <= floor(4*sin(.25*(l.x + 6)))+12){
+		b.type = SOLID;
+	}else{
+		b.type = AIR;
+	}
+	if(l.y >= floor(4*sin(.25*(l.x + 6)))+12){
+		b.color = {0.0f,1.0f,0.0f};
+	}else{
+		b.color = {1.0f,.25f,.25f};
+	}
+
+	//b.color = {0.0f,1.0f,0.0f};
+	b.loc = l;
+
+	return b;
+}
+
 void World::createChunk(vec3 l){
-	chunk.emplace(vec3Hash(l),Chunk(l));
+	Chunk temp(l);
+	temp.inWorld = this;
+	chunk.emplace(vec3Hash(l),temp);
+	//chunk.emplace(vec3Hash(l),Chunk(l));
 }
 
 void World::updateChunks(){

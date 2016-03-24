@@ -28,8 +28,10 @@ public:
 
 	Block();
 	Block(vec3 l);
-	void update();
+	void updateFaces();
 };
+
+class World;
 
 class Chunk{
 public:
@@ -38,6 +40,8 @@ public:
 
 	vec3 loc;
 	uint hash;
+
+	World *inWorld;
 
 	Chunk(vec3 l);
 	Chunk();
@@ -57,6 +61,8 @@ public:
 
 	Block* blockAt(vec3);
 	bool blockIsAir(vec3);
+
+	Block generateBlock(vec3 l);
 };
 
 //ID

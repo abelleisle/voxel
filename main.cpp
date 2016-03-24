@@ -232,10 +232,13 @@ int main(/*int argc, char *argv[]*/){
 
 	world.createChunk({0,0,0});
 	world.createChunk({16,0,0});
-	//world.createChunk({32,0,0});
-	//world.createChunk({0,0,16});
-	//world.createChunk({16,0,16});
-	//world.createChunk({16,16,16});
+	world.createChunk({-16,0,0});
+	world.createChunk({0,0,16});
+	world.createChunk({16,0,16});
+	world.createChunk({-16,0,16});
+	world.createChunk({0,0,-16});
+	world.createChunk({16,0,-16});
+	world.createChunk({-16,0,-16});
 	world.updateChunks();
 
 	gameRunning = true;
