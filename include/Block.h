@@ -5,10 +5,17 @@
 
 class Chunk;
 
+enum block_t{
+	AIR,
+	SOLID
+};
+
 class Block{
 public:
 	vec3 loc;
 	uint hash;
+
+	block_t type;
 
 	std::vector<vec3>verts;
 	std::vector<Color>colors;
@@ -26,7 +33,8 @@ public:
 
 class Chunk{
 public:
-	std::unordered_map<uint, Block>block;
+	//std::unordered_map<uint, Block>block;
+	std::vector<std::vector<std::vector<Block>>>block;
 
 	vec3 loc;
 	uint hash;

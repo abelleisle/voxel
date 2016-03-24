@@ -1,6 +1,6 @@
 /** @file common.h
  * @brief Common items needed by most other files.
- * 
+ *
  * This file contains headers, variables and functions that are needed in
  * most other files included in this project.
  */
@@ -13,14 +13,14 @@
 #include <string>
 #include <vector>
 #include <math.h>
-#include <fstream>	
+#include <fstream>
 #include <thread>
 #include <mutex>
 #include <future>
 #include <algorithm>
 #include <unordered_map>
 #include <memory>
-//#include <threadpool.h>
+#include <threadpool.h>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -48,6 +48,7 @@ typedef struct{
 		x = _x;
 		y = _y;
 		z = _z;
+		return this;
 	}*/
 }vec3;
 

@@ -96,7 +96,7 @@ void mainLoop(void);
 int main(/*int argc, char *argv[]*/){
 	// *argv = (char *)argc;
 	SDL_GLContext mainGLContext = NULL;
-	
+
 	gameRunning=false;
 
 	/**
@@ -167,7 +167,7 @@ int main(/*int argc, char *argv[]*/){
 		std::cout << "The window failed to generate! SDL_Error: " << SDL_GetError() << std::endl;
         return -1;
     }
-
+//
     /*
      * Create the SDL OpenGL context. Once created, we are allowed to use OpenGL functions.
      * Saving this context to mainGLContext does not appear to be necessary as mainGLContext
@@ -198,15 +198,15 @@ int main(/*int argc, char *argv[]*/){
 	 * setup the alpha channel for textures/transparency, and finally hide the system's mouse
 	 * cursor so that we may draw our own.
 	 */
-	
+
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetSwapInterval(0);
-	
+
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	
+
 	SDL_SetWindowGrab(window,SDL_TRUE);
 	//SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -214,8 +214,8 @@ int main(/*int argc, char *argv[]*/){
 	/**************************
 	****     GAMELOOP      ****
 	**************************/
-	
-	std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
+
+	// std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
 
 	cameraRot.x = 0;
 	cameraRot.y = 0;
@@ -231,40 +231,38 @@ int main(/*int argc, char *argv[]*/){
 	//int meme = 0;
 
 	world.createChunk({0,0,0});
-	//world.blockAt({34.0f,17.0f,6.0f})->update();
+	world.createChunk({16,0,0});
+	world.createChunk({-16,0,0});
+
+	world.createChunk({0,0,16});
+	world.createChunk({16,0,16});
+	world.createChunk({-16,0,16});
+
+	world.createChunk({0,0,-16});
+	world.createChunk({16,0,-16});
+	world.createChunk({-16,0,-16});
+
 	world.updateChunks();
-	/*for(auto &c : world.chunk){
-		for(uint h = 0; h < CHUNK_HEIGHT; h++){
-			for(uint w = 0; w < CHUNK_WIDTH; w++){
-				for(uint d = 0; d < CHUNK_DEPTH; d++){
-					if(32 != 0)
-						c.block[h][w][d].color = {120,72,0};
-					else
-						c.block[h][w][d].color = {25,255,25};
-				}
-			}
-		}
-	}*/
 
 	gameRunning = true;
 	while(gameRunning){
 		mainLoop();
 	}
-	
+
 	/**************************
 	****   CLOSE PROGRAM   ****
 	**************************/
-	
+
     /*
      * Close the window and free resources
      */
-    
+
     Mix_HaltMusic();
     Mix_CloseAudio();
 
     SDL_GL_DeleteContext(mainGLContext);
     SDL_DestroyWindow(window);
-    
+
     return 0; // Calls everything passed to atexit
 }
 
@@ -273,25 +271,25 @@ void mainLoop(void){
 	static unsigned int prevTime = 0;
 	static unsigned int prevPrevTime= 0,	// Used for timing operations
 						currentTime = 0;	//
-	
+
 	if(!currentTime)						// Initialize currentTime if it hasn't been
 		currentTime=SDL_GetTicks();
-	
+
 	/*
 	 * Update timing values. This is crucial to calling logic and updating the window (basically
 	 * the entire game).
 	 */
-	
+
 	prevTime	= currentTime;
 	currentTime = SDL_GetTicks();
 	deltaTime	= currentTime - prevTime;
 
 	cameraPos = player.loc;
 	cameraPos.y = player.loc.y + 1.75;
-	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y-1)), player.loc.z})){
+	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y)), player.loc.z})){
 		player.loc.y -= .01;
 	}else{
-		player.loc.y = (int)player.loc.y;
+		player.loc.y = (int)player.loc.y+1;
 	}
 
 	ui::handleEvents();
@@ -311,7 +309,7 @@ void mainLoop(void){
 	//std::cout << 1000/deltaTime << std::endl;
 	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
 	render();
-	
+
 }
 
 void perspectiveGl(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar){
@@ -338,7 +336,7 @@ void render(){
 	 *
 	 *	glMatrixMode	This changes our current stacks mode so the drawings below
 	 *					it can take on certain traits.
-	 *	
+	 *
 	 *	GL_PROJECTION	This is the matrix mode that sets the cameras position,
 	 *					GL_PROJECTION is made up of a stack with two matrices which
 	 *					means we can make up to 2 seperate changes to the camera.
@@ -362,7 +360,7 @@ void render(){
 	 *	glLoadIdentity	This scales the current matrix back to the origin so the
 	 *					translations are seen normally on a stack.
 	 */
-	
+
 	glMatrixMode(GL_PROJECTION);
 	//glPushMatrix();
 	glLoadIdentity();
@@ -374,7 +372,7 @@ void render(){
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glPushMatrix();
-	
+
 	/*
 	 * glPushAttrib		This passes attributes to the renderer so it knows what it can
 	 *					render. In our case, GL_DEPTH_BUFFER_BIT allows the renderer to
@@ -385,7 +383,7 @@ void render(){
 	 * glClear 			This clears the new matrices using the type passed. In our case:
 	 *					GL_COLOR_BUFFER_BIT allows the matrices to have color on them
 	 */
-	
+
 	glPushAttrib(GL_DEPTH_BUFFER_BIT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -397,7 +395,7 @@ void render(){
 	/**************************
 	**** RENDER STUFF HERE ****
 	**************************/
-		
+
 	// static float f[] = {0,0,0,		0,255,255,
 	// 					100,0,0,	255,255,0,
 	// 					100,0,100,	0,0,255,
@@ -447,19 +445,23 @@ void render(){
 	glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
 	*/
 	for(auto &c : world.chunk){
-		for(auto &b : c.second.block){
-			glBegin(GL_QUADS);
-			for(uint i = 0; i < b.second.verts.size();i++){
-				glColor3f(	b.second.colors[i].r,
-							b.second.colors[i].g,
-							b.second.colors[i].b);
-				glVertex3f(	b.second.verts[i].x,
-							b.second.verts[i].y,
-							b.second.verts[i].z);
+		for(auto &bx : c.second.block){
+			for(auto &by : bx){
+				for(auto &b : by){
+					glBegin(GL_QUADS);
+					for(uint i = 0; i < b.verts.size();i++){
+						glColor3f(	b.colors[i].r,
+									b.colors[i].g,
+									b.colors[i].b);
+						glVertex3f(	b.verts[i].x,
+									b.verts[i].y,
+									b.verts[i].z);
+					}
+					/*for(auto &v : b.verts)
+						glVertex3f(v.x,v.y,v.z);*/
+					glEnd();
+				}
 			}
-			for(auto &v : b.second.verts)
-				glVertex3f(v.x,v.y,v.z);
-			glEnd();
 		}
 	}
 
