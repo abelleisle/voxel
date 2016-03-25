@@ -48,6 +48,12 @@ SDL_Window *window = NULL;
 
 bool gameRunning;
 
+GLuint fragShader;
+GLuint vertShader;
+
+GLuint shaderProgram;
+
+
 /**
  * Used for texture animation. It is externally referenced by ui.cpp
  * and entities.cpp.
@@ -211,6 +217,64 @@ int main(/*int argc, char *argv[]*/){
 	//SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
+	/*
+	 *	SHADERS
+	 */
+	std::cout << "Initializing shaders!" << std::endl;
+
+	const GLchar *shaderSource = readFile("frig.frag");
+
+	GLint bufferln = GL_FALSE;
+	int logLength;
+
+
+	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragShader, 1, &shaderSource, NULL);
+	glCompileShader(fragShader);
+
+	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &bufferln);
+	glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
+
+	std::vector<char> fragShaderError ((logLength > 1) ? logLength : 1);
+
+	glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
+	std::cout << &fragShaderError[0] << std::endl;
+
+	if(bufferln == GL_FALSE){
+		std::cout << "Error compiling shader" << std::endl;
+	}
+
+	shaderSource = readFile("frig.vert");
+	vertShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertShader, 1, &shaderSource, NULL);
+	glCompileShader(vertShader);
+
+	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &bufferln);
+	glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
+
+	std::vector<char> vertShaderError ((logLength > 1) ? logLength : 1);
+
+	glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
+	std::cout << &vertShaderError[0] << std::endl;
+
+	if(bufferln == GL_FALSE){
+		std::cout << "Error compiling shader" << std::endl;
+	}
+
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, fragShader);
+	glAttachShader(shaderProgram, vertShader);
+	glLinkProgram(shaderProgram);
+	glValidateProgram(shaderProgram);
+
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &bufferln);
+    glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> programError( (logLength > 1) ? logLength : 1 );
+    glGetProgramInfoLog(shaderProgram, logLength, NULL, &programError[0]);
+    std::cout << &programError[0] << std::endl;
+
+	delete[] shaderSource;
+
 	/**************************
 	****     GAMELOOP      ****
 	**************************/
@@ -233,15 +297,12 @@ int main(/*int argc, char *argv[]*/){
 	world.createChunk({0,0,0});
 	world.createChunk({16,0,0});
 	world.createChunk({-16,0,0});
-
 	world.createChunk({0,0,16});
 	world.createChunk({16,0,16});
 	world.createChunk({-16,0,16});
-
 	world.createChunk({0,0,-16});
 	world.createChunk({16,0,-16});
 	world.createChunk({-16,0,-16});
-
 	world.updateChunks();
 
 	gameRunning = true;
@@ -448,17 +509,21 @@ void render(){
 		for(auto &bx : c.second.block){
 			for(auto &by : bx){
 				for(auto &b : by){
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, b.texture);
+					glUseProgram(shaderProgram);
+					glUniform1i(glGetUniformLocation(shaderProgram, "sampler"), 0);
 					glBegin(GL_QUADS);
-					for(uint i = 0; i < b.verts.size();i++){
-						glColor3f(	b.colors[i].r,
-									b.colors[i].g,
-									b.colors[i].b);
-						glVertex3f(	b.verts[i].x,
-									b.verts[i].y,
-									b.verts[i].z);
+					for(uint i = 0; i < b.verts.size();i+=4){
+						glColor3f(b.colors[i].r, b.colors[i].g, b.colors[i].b);
+						glVertex3f(b.verts[i].x, b.verts[i].y, b.verts[i].z);
+						glVertex3f(b.verts[i+1].x, b.verts[i+1].y, b.verts[i+1].z);
+						glVertex3f(b.verts[i+2].x, b.verts[i+2].y, b.verts[i+2].z);
+						glVertex3f(b.verts[i+3].x, b.verts[i+3].y, b.verts[i+3].z);
 					}
 					/*for(auto &v : b.verts)
 						glVertex3f(v.x,v.y,v.z);*/
+					glUseProgram(0);
 					glEnd();
 				}
 			}

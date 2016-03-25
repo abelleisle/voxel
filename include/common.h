@@ -62,6 +62,8 @@ uint vec3Hash(vec3 l);
 
 vec3 vec3FromHash(uint hash);
 
+const char *readFile(const char *path);
+
 template<typename N, size_t s>
 size_t arrAmt(N (&)[s]){return s;}
 

@@ -41,10 +41,13 @@ namespace ui{
 				cameraRot.y += float(e.motion.xrel)*.25*sensitivity;
 				if(cameraRot.x < -85)cameraRot.x = -85;
 				if(cameraRot.x > 85)cameraRot.x = 85;
+				if(cameraRot.y >= 360)cameraRot.y = cameraRot.y-360;
+				if(cameraRot.y < 0) cameraRot.y = 360 - cameraRot.y;
 			}
 			if(key[SDL_SCANCODE_ESCAPE]) gameRunning = false;
 			if(key[SDL_SCANCODE_W]){
 			    yrotrad = (cameraRot.y / 180 * 3.141592654f);
+				std::cout << yrotrad << std::endl;
 			    player.loc.x += float(sin(yrotrad))*.05;
 			    player.loc.z -= float(cos(yrotrad))*.05;
 			}
@@ -55,13 +58,13 @@ namespace ui{
 			}
 			if(key[SDL_SCANCODE_A]){
 				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				player.loc.x -= float(cos(yrotrad))*.01;
-				player.loc.z -= float(sin(yrotrad))*.01;
+				player.loc.x -= float(cos(yrotrad))*.03;
+				player.loc.z -= float(sin(yrotrad))*.03;
 			}
 			if(key[SDL_SCANCODE_D]){
 				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				player.loc.x += float(cos(yrotrad))*.01;
-				player.loc.z += float(sin(yrotrad))*.01;
+				player.loc.x += float(cos(yrotrad))*.03;
+				player.loc.z += float(sin(yrotrad))*.03;
 			}
 			if(key[SDL_SCANCODE_SPACE]){
 				player.loc.y+=.5;
