@@ -48,6 +48,12 @@ SDL_Window *window = NULL;
 
 bool gameRunning;
 
+GLuint fragShader;
+GLuint vertShader;
+
+GLuint shaderProgram;
+
+
 /**
  * Used for texture animation. It is externally referenced by ui.cpp
  * and entities.cpp.
@@ -204,12 +210,78 @@ int main(/*int argc, char *argv[]*/){
 
 	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	SDL_SetWindowGrab(window,SDL_TRUE);
 	//SDL_ShowCursor(SDL_DISABLE);
 	SDL_SetRelativeMouseMode(SDL_TRUE);
+
+	//glEnable(GL_TEXTURE_2D);                        // Enable Texture Mapping
+	glEnable(GL_BLEND);
+    glShadeModel(GL_SMOOTH);                        // Enable Smooth Shading
+    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);         // Black Background
+    //glClearDepth(1.0f);                         // Depth Buffer Setup
+    glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
+    glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
+    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+
+	/*
+	 *	SHADERS
+	 */
+	std::cout << "Initializing shaders!" << std::endl;
+
+	const GLchar *shaderSource = readFile("frig.frag");
+
+	GLint bufferln = GL_FALSE;
+	int logLength;
+
+
+	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragShader, 1, &shaderSource, NULL);
+	glCompileShader(fragShader);
+
+	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &bufferln);
+	glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
+
+	std::vector<char> fragShaderError ((logLength > 1) ? logLength : 1);
+
+	glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
+	std::cout << &fragShaderError[0] << std::endl;
+
+	if(bufferln == GL_FALSE){
+		std::cout << "Error compiling shader" << std::endl;
+	}
+
+	shaderSource = readFile("frig.vert");
+	vertShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertShader, 1, &shaderSource, NULL);
+	glCompileShader(vertShader);
+
+	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &bufferln);
+	glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
+
+	std::vector<char> vertShaderError ((logLength > 1) ? logLength : 1);
+
+	glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
+	std::cout << &vertShaderError[0] << std::endl;
+
+	if(bufferln == GL_FALSE){
+		std::cout << "Error compiling shader" << std::endl;
+	}
+
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, fragShader);
+	glAttachShader(shaderProgram, vertShader);
+	glLinkProgram(shaderProgram);
+	glValidateProgram(shaderProgram);
+
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &bufferln);
+    glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &logLength);
+    std::vector<char> programError( (logLength > 1) ? logLength : 1 );
+    glGetProgramInfoLog(shaderProgram, logLength, NULL, &programError[0]);
+    std::cout << &programError[0] << std::endl;
+
+	delete[] shaderSource;
 
 	/**************************
 	****     GAMELOOP      ****
@@ -284,7 +356,7 @@ void mainLoop(void){
 	cameraPos = player.loc;
 	cameraPos.y = player.loc.y + 1.75;
 	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y)), player.loc.z})){
-		player.loc.y -= .01;
+		//player.loc.y -= .01;
 	}else{
 		player.loc.y = (int)player.loc.y+1;
 	}
@@ -298,8 +370,10 @@ void mainLoop(void){
 		logic();
 		prevPrevTime = currentTime;
 	}
+
 	if(deltaTime >1000){
 		std::cout << "Holy hell" << std::endl;
+
 	}
 	//std::cout << 1000/deltaTime << std::endl;
 	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
@@ -362,7 +436,7 @@ void render(){
 	//glOrtho(-SCREEN_WIDTH/2,SCREEN_WIDTH/2,-SCREEN_HEIGHT/2,SCREEN_HEIGHT/2,-1000,1000);
 	//glOrtho(-640,640,-360,360,1000,-1000);
 	//glFrustum(-640,640,-360,360,1000000000,100000);
-	perspectiveGl(90.0f,SCREEN_WIDTH/SCREEN_HEIGHT,0.1f,100.0f);
+	perspectiveGl(90.0f,SCREEN_WIDTH/SCREEN_HEIGHT,0.1f,1000.0f);
 	//glFrustum(-1,1,-1,1,0, 20);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -426,7 +500,6 @@ void render(){
 						50,100,0};
 	static unsigned int ind[] = {0,1,2};*/
 
-	glEnable(GL_DEPTH_TEST);
 	/*
 	//glEnable(GL_CULL_FACE);
 	//glCullFace(GL_BACK);
@@ -435,37 +508,103 @@ void render(){
 	glEnableClientState(GL_VERTEX_ARRAY);
 	//glEnableClientState(GL_COLOR_ARRAY);
 
+
 	glVertexPointer(3,GL_FLOAT,6*sizeof(float),&c.verts[0]);
 	//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
 	glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
-
-	//glVertexPointer(3,GL_FLOAT,6*sizeof(float),t);
-	//glColorPointer(3,GL_FLOAT,6*sizeof(float),&t[3]);
-	//glDrawElements(GL_TRIANGLES,18,GL_UNSIGNED_INT,index);
-
-	glEnableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
 	*/
+	glColor4f(1,1,1,1);
 	for(auto &c : world.chunk){
 		for(auto &bx : c.second.block){
 			for(auto &by : bx){
 				for(auto &b : by){
+					glActiveTexture(GL_TEXTURE0);
+					glBindTexture(GL_TEXTURE_2D, b.texture);
+					//glEnable(GL_TEXTURE_2D);
 					glBegin(GL_QUADS);
-					for(uint i = 0; i < b.verts.size();i++){
-						glColor3f(	b.colors[i].r,
-									b.colors[i].g,
-									b.colors[i].b);
-						glVertex3f(	b.verts[i].x,
-									b.verts[i].y,
-									b.verts[i].z);
+					for(uint i = 0; i < b.verts.size();i+=4){
+						glUniform1i(glGetUniformLocation(shaderProgram, "sampler"), 0);
+						glUseProgram(shaderProgram);
+						//glColor4f(b.colors[(int)i/4].r, b.colors[(int)i/4].g, b.colors[(int)i/4].b,1.0f);
+						switch(b.normals[(int)i/4]){
+							case NEAR:
+								glNormal3f(0.0f,0.0f,1.0f);
+								break;
+							case FAR:
+								glNormal3f(0.0f,0.0f,-1.0f);
+								break;
+							case TOP:
+								glNormal3f(0.0f,1.0f,0.0f);
+								break;
+							case BOTTOM:
+								glNormal3f(0.0f,-1.0f,0.0f);
+								break;
+							case LEFT:
+								glNormal3f(-1.0f,0.0f,0.0f);
+								break;
+							case RIGHT:
+								glNormal3f(1.0f,0.0f,0.0f);
+								break;
+						}
+						glTexCoord2f(0,1);
+							glVertex3f(b.verts[i].x, b.verts[i].y, b.verts[i].z);
+						glTexCoord2f(1,1);
+							glVertex3f(b.verts[i+1].x, b.verts[i+1].y, b.verts[i+1].z);
+						glTexCoord2f(1,0);
+							glVertex3f(b.verts[i+2].x, b.verts[i+2].y, b.verts[i+2].z);
+						glTexCoord2f(0,0);
+							glVertex3f(b.verts[i+3].x, b.verts[i+3].y, b.verts[i+3].z);
+						glUseProgram(0);
 					}
-					/*for(auto &v : b.verts)
-						glVertex3f(v.x,v.y,v.z);*/
 					glEnd();
+					//glDisable(GL_TEXTURE_2D);
 				}
 			}
 		}
 	}
+	/*glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, world.blockAt({0,0,0})->texture);              // Select A Texture Based On filter
+	glEnable(GL_TEXTURE_2D);
+	glBegin(GL_QUADS);                          // Start Drawing Quads
+	    // Front Face
+	    glNormal3f( 0.0f, 0.0f, 1.0f);                  // Normal Pointing Towards Viewer
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 1 (Front)
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 2 (Front)
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Front)
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 4 (Front)
+	    // Back Face
+	    glNormal3f( 0.0f, 0.0f,-1.0f);                  // Normal Pointing Away From Viewer
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Back)
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 2 (Back)
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 3 (Back)
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 4 (Back)
+	    // Top Face
+	    glNormal3f( 0.0f, 1.0f, 0.0f);                  // Normal Pointing Up
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 1 (Top)
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 2 (Top)
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Top)
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 4 (Top)
+	    // Bottom Face
+	    glNormal3f( 0.0f,-1.0f, 0.0f);                  // Normal Pointing Down
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Bottom)
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 2 (Bottom)
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 3 (Bottom)
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 4 (Bottom)
+	    // Right face
+	    glNormal3f( 1.0f, 0.0f, 0.0f);                  // Normal Pointing Right
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 1 (Right)
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 2 (Right)
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Right)
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 4 (Right)
+	    // Left Face
+	    glNormal3f(-1.0f, 0.0f, 0.0f);                  // Normal Pointing Left
+	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Left)
+	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 2 (Left)
+	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 3 (Left)
+	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 4 (Left)
+	glEnd();
+
+	glDisable(GL_TEXTURE_2D);*/
 
 	/*
 	 * These next two function finish the rendering

@@ -7,7 +7,6 @@ std::mutex blockMtx;
 ThreadPool thr(50);
 
 Block::Block(){
-
 }
 
 Block::Block(vec3 l){
@@ -16,6 +15,8 @@ Block::Block(vec3 l){
 
 	verts.reserve(24);
 	colors.reserve(24);
+
+	texture = Texture::loadTexture("meme.png");
 }
 
 Block* World::blockAt(vec3 l){
@@ -73,9 +74,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x+1,loc.y+1,loc.z});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(RIGHT);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -91,9 +91,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x,loc.y+1,loc.z});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(LEFT);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -108,9 +107,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x,loc.y+1,loc.z+1});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(TOP);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -125,9 +123,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x,loc.y,loc.z+1});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(BOTTOM);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -142,9 +139,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x,loc.y+1,loc.z});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(NEAR);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -159,9 +155,8 @@ void Block::updateFaces(){
 			verts.push_back({loc.x,loc.y+1,loc.z+1});
 
 			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
-			colors.push_back(color);
+
+			normals.push_back(FAR);
 			mtx.unlock();
 		}else{
 			//std::cout << "No air" << std::endl;
@@ -224,7 +219,7 @@ World::World(){
 
 Block World::generateBlock(vec3 l){
 	Block b;
-
+	b.texture = Texture::loadTexture("bgWoodTile.png");
 	if(l.y <= floor(4*sin(.25*(l.x + l.z)))+12){
 		b.type = SOLID;
 	}else{
@@ -253,8 +248,8 @@ void World::updateChunks(){
 	uint a = 0;
 	std::cout << "Chunk size: " << chunk.size() << std::endl;
 	for(auto &c : chunk){
-		//thr.Enqueue([&]{c.second.updateBlocks();});
 		c.second.updateBlocks();
+		//thr.Enqueue([&]{c.second.updateBlocks();});
 		std::cout << "Chunk: " << a++ << std::endl;
 	}
 }

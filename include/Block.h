@@ -2,12 +2,22 @@
 #define BLOCK_H
 
 #include <common.h>
+#include <Texture.h>
 
 class Chunk;
 
 enum block_t{
 	AIR,
 	SOLID
+};
+
+enum block_side{
+	NEAR,
+	FAR,
+	RIGHT,
+	LEFT,
+	TOP,
+	BOTTOM
 };
 
 class Block{
@@ -19,10 +29,13 @@ public:
 
 	std::vector<vec3>verts;
 	std::vector<Color>colors;
+	std::vector<block_side>normals;
 
 	std::string name;
 	uint id;
 	Color color;
+
+	GLuint texture;
 
 	Chunk *inChunk;
 

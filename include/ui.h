@@ -17,9 +17,12 @@ extern unsigned int SCREEN_WIDTH;
 
 extern Player player;
 
+const float front = .5;
+const float side = .5;
+
 namespace ui{
 	void handleEvents(){
-		const Uint8 *key = SDL_GetKeyboardState(NULL);
+		//const Uint8 *key = SDL_GetKeyboardState(NULL);
 		static SDL_Event e;
 		static float yrotrad;
 		// static int mx, my;
@@ -33,47 +36,50 @@ namespace ui{
 		//cameraRot.x += dy;
 		//cameraRot.y += dx;
 		while(SDL_PollEvent(&e)){
-			if(e.type == SDL_QUIT){
-				gameRunning = false;
-			}
-			if(e.type == SDL_MOUSEMOTION){
-				cameraRot.x += float(e.motion.yrel)*.25*sensitivity;
-				cameraRot.y += float(e.motion.xrel)*.25*sensitivity;
-				if(cameraRot.x < -85)cameraRot.x = -85;
-				if(cameraRot.x > 85)cameraRot.x = 85;
-				if(cameraRot.y >= 360)cameraRot.y = cameraRot.y-360;
-				if(cameraRot.y < 0) cameraRot.y = 360 - cameraRot.y;
-			}
-			if(key[SDL_SCANCODE_ESCAPE]) gameRunning = false;
-			if(key[SDL_SCANCODE_W]){
-			    yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				std::cout << yrotrad << std::endl;
-			    player.loc.x += float(sin(yrotrad))*.05;
-			    player.loc.z -= float(cos(yrotrad))*.05;
-			}
-			if(key[SDL_SCANCODE_S]){
-				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				player.loc.x -= float(sin(yrotrad))*.05;
-				player.loc.z += float(cos(yrotrad))*.05;
-			}
-			if(key[SDL_SCANCODE_A]){
-				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				player.loc.x -= float(cos(yrotrad))*.03;
-				player.loc.z -= float(sin(yrotrad))*.03;
-			}
-			if(key[SDL_SCANCODE_D]){
-				yrotrad = (cameraRot.y / 180 * 3.141592654f);
-				player.loc.x += float(cos(yrotrad))*.03;
-				player.loc.z += float(sin(yrotrad))*.03;
-			}
-			if(key[SDL_SCANCODE_SPACE]){
-				player.loc.y+=.5;
-			}
-			if(key[SDL_SCANCODE_LCTRL]){
-				player.loc.y-=.1;
-			}
-			if(key[SDL_SCANCODE_P]){
-				player.breaku = true;
+			switch(e.type){
+				case SDL_QUIT:
+					gameRunning = false;
+					break;
+				case SDL_MOUSEMOTION:
+					cameraRot.x += float(e.motion.yrel)*.25*sensitivity;
+					cameraRot.y += float(e.motion.xrel)*.25*sensitivity;
+					if(cameraRot.x < -85)cameraRot.x = -85;
+					if(cameraRot.x > 85)cameraRot.x = 85;
+					if(cameraRot.y >= 360)cameraRot.y = cameraRot.y-360;
+					if(cameraRot.y < 0) cameraRot.y = 360 - cameraRot.y;
+					break;
+				case SDL_KEYDOWN:
+					if(e.key.keysym.sym == SDLK_ESCAPE){
+						gameRunning = false;
+					}
+					if(e.key.keysym.sym == SDLK_w){
+						yrotrad = (cameraRot.y / 180 * 3.141592654f);
+						//std::cout << yrotrad << std::endl;
+					    player.loc.x += float(sin(yrotrad))*front;
+					    player.loc.z -= float(cos(yrotrad))*front;
+					}
+					if(e.key.keysym.sym == SDLK_s){
+						yrotrad = (cameraRot.y / 180 * 3.141592654f);
+						player.loc.x -= float(sin(yrotrad))*front;
+						player.loc.z += float(cos(yrotrad))*front;
+					}
+					if(e.key.keysym.sym == SDLK_a){
+						yrotrad = (cameraRot.y / 180 * 3.141592654f);
+						player.loc.x -= float(cos(yrotrad))*side;
+						player.loc.z -= float(sin(yrotrad))*side;
+					}
+					if(e.key.keysym.sym == SDLK_d){
+						yrotrad = (cameraRot.y / 180 * 3.141592654f);
+						player.loc.x += float(cos(yrotrad))*side;
+						player.loc.z += float(sin(yrotrad))*side;
+					}
+					if(e.key.keysym.sym == SDLK_SPACE){
+						player.loc.y+=.5;
+					}
+					if(e.key.keysym.sym == SDLK_LCTRL){
+						player.loc.y-=.5;
+					}
+					break;
 			}
 		}
 	}
