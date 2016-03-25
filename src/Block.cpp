@@ -225,13 +225,12 @@ World::World(){
 Block World::generateBlock(vec3 l){
 	Block b;
 
-	std::cout << l.x << "," << floor(4*sin(.25*(l.x + 6)))+12 << std::endl;
-	if(l.y <= floor(4*sin(.25*(l.x + 6)))+12){
+	if(l.y <= floor(4*sin(.25*(l.x + l.z)))+12){
 		b.type = SOLID;
 	}else{
 		b.type = AIR;
 	}
-	if(l.y >= floor(4*sin(.25*(l.x + 6)))+12){
+	if(l.y >= floor(4*sin(.25*(l.x + l.z)))+12){
 		b.color = {0.0f,1.0f,0.0f};
 	}else{
 		b.color = {1.0f,.25f,.25f};
