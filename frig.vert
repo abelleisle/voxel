@@ -1,10 +1,9 @@
-#version 120
+attribute vec3 coord;
+attribute vec3 v_color;
+uniform mat4 mvp;
+varying vec3 f_color;
 
-varying vec2 TexCoord;
-
-void main()
-{
-    gl_TexCoord[0] = gl_MultiTexCoord0;
-    TexCoord = gl_TexCoord[0].xy;
-    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+void main(void) {
+  gl_Position = mvp * vec4(coord, 1.0);
+  f_color = v_color;
 }

@@ -1,631 +1,243 @@
-/*! @file main.cpp
- *	@brief The file that links everything together for the game to run.
- *	The  main game loop contains all of the global variables the game uses, and it runs the main game loop, the render loop, and the logic loop that control all of the entities.
- */
-
-/*
- * Standard library includes
- */
-
 #include <fstream>
 #include <istream>
 #include <thread>
 
 #include <common.h>
-#include <Block.h>
-#include <Player.h>
-
-World world;
-Player player;
-
-#include <ui.h>
-
-
-/**
- * Defines how many game ticks should occur in one second, affecting how often
- * game logic is handled.
- */
-
-#define TICKS_PER_SEC 20
-
-/**
- * Defines how many milliseconds each game tick will take.
- */
-
-#define MSEC_PER_TICK (1000/TICKS_PER_SEC)
-
-/**
- * The window object returned by SDL when we create the main window.
- */
-
-SDL_Window *window = NULL;
-
-/**
- * Determines when the game should exit. This variable is set to true right
- * before the main loop is entered, once set to false the game will exit/
- * free resources.
- */
-
-bool gameRunning;
-
-GLuint fragShader;
-GLuint vertShader;
+#include "shader_utils.h"
 
 GLuint shaderProgram;
-
-
-/**
- * Used for texture animation. It is externally referenced by ui.cpp
- * and entities.cpp.
- */
-
-unsigned int loops = 0;
-
-#define GAME_NAME "Voxel Engine"
-
-unsigned int SCREEN_WIDTH = 1280;
-unsigned int SCREEN_HEIGHT = 720;
-bool FULLSCREEN;
-
-float VOLUME_MASTER;
-float VOLUME_MUSIC;
-float VOLUME_SFX;
+GLint attribute_coord, attribute_v_color;
+GLint uniform_mvp;
 
 vec3 cameraPos;
 vec2 cameraRot;
 
-/**
- * The game logic function, should handle all logic-related operations for the
- * game.
- */
+vec2 screen;
 
-void logic(void);
+GLuint vbo_cube_vertices, vbo_cube_colors;
 
-/**
- * The game render function, should handle all drawing to the window.
- */
+GLuint ibo_cube_elements;
 
-void render(void);
+void reshape(int w, int h){
+	screen.x = w;
+	screen.y = h;
+	glViewport(0, 0, w, h);
+}
 
-/**
- * The main loop, calls logic(), render(), and does timing operations in the
- * appropriate order.
- */
+static int init_resources(){
+	shaderProgram = create_program("frig.vert","frig.frag");
 
-void mainLoop(void);
+	if(!shaderProgram)
+		return 0;
 
+	attribute_coord = get_attrib(shaderProgram, "coord");
+	attribute_v_color = get_attrib(shaderProgram, "v_color");
+	uniform_mvp = get_uniform(shaderProgram, "mvp");
 
+	if(attribute_coord == -1 || uniform_mvp == -1)
+		return 0;
 
-/*******************************************************************************
- * MAIN ************************************************************************
- *******************************************************************************/
+	glEnableVertexAttribArray(attribute_coord);
+
+	cameraRot = {0,0};
+
+	GLfloat cube_vertices[] = {
+		// front
+		-1.0, -1.0,  1.0,
+		1.0, -1.0,  1.0,
+		1.0,  1.0,  1.0,
+		-1.0,  1.0,  1.0,
+		// back
+		-1.0, -1.0, -1.0,
+		1.0, -1.0, -1.0,
+		1.0,  1.0, -1.0,
+		-1.0,  1.0, -1.0,
+	};
+	glGenBuffers(1, &vbo_cube_vertices);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+
+	GLfloat cube_colors[] = {
+		// front colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
+		// back colors
+		1.0, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0,
+		1.0, 1.0, 1.0,
+	};
+	glGenBuffers(1, &vbo_cube_colors);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+
+	GLushort cube_elements[] = {
+		// front
+		0, 1, 2,
+		2, 3, 0,
+		// top
+		1, 5, 6,
+		6, 2, 1,
+		// back
+		7, 6, 5,
+		5, 4, 7,
+		// bottom
+		4, 0, 3,
+		3, 7, 4,
+		// left
+		4, 5, 1,
+		1, 0, 4,
+		// right
+		3, 2, 6,
+		6, 7, 3,
+	};
+	glGenBuffers(1, &ibo_cube_elements);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
+
+	return 1;
+}
+
+void render(void){
+	glm::mat4 rotx = glm::rotate(glm::mat4(1.0f), glm::radians(cameraRot.x), glm::vec3(0,1,0));
+	glm::mat4 roty = glm::rotate(glm::mat4(1.0f), glm::radians(cameraRot.y), glm::vec3(1,0,0));
+
+	glm::mat4 view = glm::lookAt(glm::vec3(0.0f,2.0f,10.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 projection = glm::perspective(45.0f, 1.0f*screen.x/screen.y, 0.01f, 1000.0f);
+	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -10.0));
+
+	glm::mat4 mvp = projection * view * rotx * roty * model;
+
+	glUseProgram(shaderProgram);
+	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(shaderProgram);
+	glEnableVertexAttribArray(attribute_coord);
+	// Describe our vertices array to OpenGL (it can't guess its format automatically)
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
+	glVertexAttribPointer(
+		attribute_coord, // attribute
+		3,                 // number of elements per vertex, here (x,y,z)
+		GL_FLOAT,          // the type of each element
+		GL_FALSE,          // take our values as-is
+		0,                 // no extra data between each position
+		0                  // offset of first element
+	);
+
+	glEnableVertexAttribArray(attribute_v_color);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
+	glVertexAttribPointer(
+		attribute_v_color, // attribute
+		3,                 // number of elements per vertex, here (R,G,B)
+		GL_FLOAT,          // the type of each element
+		GL_FALSE,          // take our values as-is
+		0,                 // no extra data between each position
+		0                  // offset of first element
+	);
+
+	/* Push each element in buffer_vertices to the vertex shader */
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
+	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
+	glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+
+	glDisableVertexAttribArray(attribute_coord);
+	glDisableVertexAttribArray(attribute_v_color);
+}
+
+void mainLoop(SDL_Window *w){
+	while(true){
+		SDL_Event ev;
+		while (SDL_PollEvent(&ev)) {
+			switch (ev.type) {
+			case SDL_QUIT:
+				return;
+			case SDL_WINDOWEVENT:
+				if(ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+					reshape(ev.window.data1,ev.window.data2);
+				break;
+			case SDL_KEYUP:
+				switch(ev.key.keysym.sym) {
+					case SDLK_LEFT:
+						cameraRot.x -= 5;
+						break;
+					case SDLK_RIGHT:
+						cameraRot.x += 5;
+						break;
+					case SDLK_DOWN:
+						cameraRot.y -= 5;
+						break;
+					case SDLK_UP:
+						cameraRot.y += 5;
+						break;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+
+		render();
+		SDL_GL_SwapWindow(w);
+	}
+}
+
+void free_resources(){
+	glDeleteProgram(shaderProgram);
+	glDeleteBuffers(1, &vbo_cube_vertices);
+	glDeleteBuffers(1, &vbo_cube_colors);
+	glDeleteBuffers(1, &ibo_cube_elements);
+}
+
 int main(/*int argc, char *argv[]*/){
-	// *argv = (char *)argc;
-	SDL_GLContext mainGLContext = NULL;
+	screen = {1280,720};
+	SDL_Init(SDL_INIT_VIDEO);
 
-	gameRunning=false;
+	// Select an OpenGL ES 2.0 profile.
+	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
-	/**
-	 * (Attempt to) Initialize SDL libraries so that we can use SDL facilities and eventually
-	 * make openGL calls. Exit if there was an error.
-	 */
+	SDL_Window *window = SDL_CreateWindow("Voxel Engine",
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		screen.x, screen.y,
+		SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
-	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0){
-		std::cout << "SDL was not able to initialize! Error: " << SDL_GetError() << std::endl;
-		return -1;
-	}
-
-	// Run SDL_Quit when main returns
-	atexit(SDL_Quit);
-
-	/**
-	 * (Attempt to) Initialize SDL_image libraries with IMG_INIT_PNG so that we can load PNG
-	 * textures for the entities and stuff.
-	 */
-
-	if(!(IMG_Init(IMG_INIT_PNG) & IMG_INIT_PNG)){
-		std::cout << "Could not init image libraries! Error: " << IMG_GetError() << std::endl;
-		return -1;
-	}
-
-	// Run IMG_Quit when main returns
-	atexit(IMG_Quit);
-
-	/**
-	 * (Attempt to) Initialize SDL_mixer libraries for loading and playing music/sound files.
-	 */
-
-	if(Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0){
-		std::cout << "SDL_mixer could not initialize! Error: " << Mix_GetError() << std::endl;
-		return -1;
-	}
-	Mix_AllocateChannels(8);
-
-	// Run Mix_Quit when main returns
-	atexit(Mix_Quit);
-
-	/*
-	 *	Create a window for SDL to draw to. Most parameters are the default, except for the
-	 *	following which are defined in include/common.h:
-	 *
-	 *	GAME_NAME		the name of the game that is displayed in the window title bar
-	 *	SCREEN_WIDTH	the width of the created window
-	 *	SCREEN_HEIGHT	the height of the created window
-	 *	FULLSCREEN		makes the window fullscreen
-	 *
-	 */
-
-	uint32_t SDL_CreateWindowFlags = SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | (FULLSCREEN ? SDL_WINDOW_FULLSCREEN : 0);
-
-	window = SDL_CreateWindow(GAME_NAME,
-							  SDL_WINDOWPOS_UNDEFINED,	// Spawn the window at random (undefined) x and y coordinates
-							  SDL_WINDOWPOS_UNDEFINED,	//
-							  SCREEN_WIDTH,
-							  SCREEN_HEIGHT,
-							  SDL_CreateWindowFlags
-							  );
-
-    /*
-     * Exit if the window cannot be created
-     */
-
-    if(window==NULL){
-		std::cout << "The window failed to generate! SDL_Error: " << SDL_GetError() << std::endl;
-        return -1;
-    }
-//
-    /*
-     * Create the SDL OpenGL context. Once created, we are allowed to use OpenGL functions.
-     * Saving this context to mainGLContext does not appear to be necessary as mainGLContext
-     * is never referenced again.
-     */
-
-    if((mainGLContext = SDL_GL_CreateContext(window)) == NULL){
-		std::cout << "The OpenGL context failed to initialize! SDL_Error: " << SDL_GetError() << std::endl;
-        return -1;
-    }
-
-	/*
-	 * Initialize GLEW libraries, and exit if there was an error.
-	 * Not sure what they're for yet.
-	 */
+	SDL_GLContext context = SDL_GL_CreateContext(window);
 
 	GLenum err;
-#ifndef __WIN32__
 	glewExperimental = GL_TRUE;
-#endif
 	if((err=glewInit()) != GLEW_OK){
 		std::cout << "GLEW was not able to initialize! Error: " << glewGetErrorString(err) << std::endl;
 		return -1;
 	}
 
-	/*
-	 * Do some basic setup for openGL. Enable double buffering, switch to by-pixel coordinates,
-	 * setup the alpha channel for textures/transparency, and finally hide the system's mouse
-	 * cursor so that we may draw our own.
-	 */
-
-	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-	SDL_GL_SetSwapInterval(0);
-
-	glViewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	SDL_SetWindowGrab(window,SDL_TRUE);
-	//SDL_ShowCursor(SDL_DISABLE);
+	// Set relative mouse mode, this will grab the cursor.
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
-	//glEnable(GL_TEXTURE_2D);                        // Enable Texture Mapping
+	SDL_GL_SetSwapInterval(1);
+	reshape(screen.x, screen.y);
+
+	print_opengl_info();
+
+	if (!init_resources())
+		return EXIT_FAILURE;
+
 	glEnable(GL_BLEND);
-    glShadeModel(GL_SMOOTH);                        // Enable Smooth Shading
-    //glClearColor(0.0f, 0.0f, 0.0f, 1.0f);         // Black Background
-    //glClearDepth(1.0f);                         // Depth Buffer Setup
-    glEnable(GL_DEPTH_TEST);                        // Enables Depth Testing
-    glDepthFunc(GL_LEQUAL);                         // The Type Of Depth Testing To Do
-    glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	mainLoop(window);
 
-	/*
-	 *	SHADERS
-	 */
-	std::cout << "Initializing shaders!" << std::endl;
+	free_resources();
 
-	const GLchar *shaderSource = readFile("frig.frag");
-
-	GLint bufferln = GL_FALSE;
-	int logLength;
-
-
-	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	glShaderSource(fragShader, 1, &shaderSource, NULL);
-	glCompileShader(fragShader);
-
-	glGetShaderiv(fragShader, GL_COMPILE_STATUS, &bufferln);
-	glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
-
-	std::vector<char> fragShaderError ((logLength > 1) ? logLength : 1);
-
-	glGetShaderInfoLog(fragShader, logLength, NULL, &fragShaderError[0]);
-	std::cout << &fragShaderError[0] << std::endl;
-
-	if(bufferln == GL_FALSE){
-		std::cout << "Error compiling shader" << std::endl;
-	}
-
-	shaderSource = readFile("frig.vert");
-	vertShader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(vertShader, 1, &shaderSource, NULL);
-	glCompileShader(vertShader);
-
-	glGetShaderiv(vertShader, GL_COMPILE_STATUS, &bufferln);
-	glGetShaderiv(vertShader, GL_INFO_LOG_LENGTH, &logLength);
-
-	std::vector<char> vertShaderError ((logLength > 1) ? logLength : 1);
-
-	glGetShaderInfoLog(vertShader, logLength, NULL, &vertShaderError[0]);
-	std::cout << &vertShaderError[0] << std::endl;
-
-	if(bufferln == GL_FALSE){
-		std::cout << "Error compiling shader" << std::endl;
-	}
-
-	shaderProgram = glCreateProgram();
-	glAttachShader(shaderProgram, fragShader);
-	glAttachShader(shaderProgram, vertShader);
-	glLinkProgram(shaderProgram);
-	glValidateProgram(shaderProgram);
-
-	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &bufferln);
-    glGetProgramiv(shaderProgram, GL_INFO_LOG_LENGTH, &logLength);
-    std::vector<char> programError( (logLength > 1) ? logLength : 1 );
-    glGetProgramInfoLog(shaderProgram, logLength, NULL, &programError[0]);
-    std::cout << &programError[0] << std::endl;
-
-	delete[] shaderSource;
-
-	/**************************
-	****     GAMELOOP      ****
-	**************************/
-
-	// std::cout << "Num threads: " << std::thread::hardware_concurrency() << std::endl;
-
-	cameraRot.x = 0;
-	cameraRot.y = 0;
-
-	cameraPos.x = 0;
-	cameraPos.y = 2;
-	cameraPos.z = 0;
-
-	player.loc.x = 5;
-	player.loc.y = 9;
-	player.loc.z = 5;
-
-	//int meme = 0;
-
-	world.createChunk({0,0,0});
-	world.createChunk({16,0,0});
-	world.createChunk({-16,0,0});
-	world.createChunk({0,0,16});
-	world.createChunk({16,0,16});
-	world.createChunk({-16,0,16});
-	world.createChunk({0,0,-16});
-	world.createChunk({16,0,-16});
-	world.createChunk({-16,0,-16});
-	world.updateChunks();
-
-	gameRunning = true;
-	while(gameRunning){
-		mainLoop();
-	}
-
-	/**************************
-	****   CLOSE PROGRAM   ****
-	**************************/
-
-    /*
-     * Close the window and free resources
-     */
-
-    Mix_HaltMusic();
-    Mix_CloseAudio();
-
-    SDL_GL_DeleteContext(mainGLContext);
+    SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
+	SDL_Quit();
 
     return 0; // Calls everything passed to atexit
-}
-
-void mainLoop(void){
-	static float deltaTime;
-	static unsigned int prevTime = 0;
-	static unsigned int prevPrevTime= 0,	// Used for timing operations
-						currentTime = 0;	//
-
-	if(!currentTime)						// Initialize currentTime if it hasn't been
-		currentTime=SDL_GetTicks();
-
-	/*
-	 * Update timing values. This is crucial to calling logic and updating the window (basically
-	 * the entire game).
-	 */
-
-	prevTime	= currentTime;
-	currentTime = SDL_GetTicks();
-	deltaTime	= currentTime - prevTime;
-
-	cameraPos = player.loc;
-	cameraPos.y = player.loc.y + 1.75;
-	if(world.blockIsAir({player.loc.x, (float)(floor(player.loc.y)), player.loc.z})){
-		//player.loc.y -= .01;
-	}else{
-		player.loc.y = (int)player.loc.y+1;
-	}
-
-	ui::handleEvents();
-	/*
-	 * Run the logic handler if MSEC_PER_TICK milliseconds have passed.
-	 */
-
-	if(prevPrevTime + MSEC_PER_TICK <= currentTime){
-		logic();
-		prevPrevTime = currentTime;
-	}
-
-	if(deltaTime >1000){
-		std::cout << "Holy hell" << std::endl;
-
-	}
-	//std::cout << 1000/deltaTime << std::endl;
-	//std::cout << "Cam: " << cameraPos.x << "," << cameraPos.y << "," << cameraPos.z << std::endl;
-	render();
-
-}
-
-void perspectiveGl(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar){
-	const GLdouble pi = 3.1415926535897932384626433832795;
-	GLdouble fW, fH;
-
-	// fH = tan((fovY/2)/180*pi)*zNear;
-	fH = tan(fovY / 360 * pi) * zNear;
-	fW = fH * aspect;
-
-	glFrustum(-fW,fW,-fH,fH,zNear,zFar);
-}
-
-void render(){
-	/*
-	 *	These functions run everyloop to update the current stacks presets
-	 *
-	 *	Matrix 	----	A matrix is a blank "canvas" for the renderer to draw on,
-	 *					this canvas can be rotated, scales, skewed, etc..
-	 *
-	 *	Stack 	----	A stack is exactly what it sounds like, it is a stack.. A
-	 *					stack is a "stack" of matrices for the renderer to draw on.
-	 *					Each stack can be made up of varying amounts of matricies.
-	 *
-	 *	glMatrixMode	This changes our current stacks mode so the drawings below
-	 *					it can take on certain traits.
-	 *
-	 *	GL_PROJECTION	This is the matrix mode that sets the cameras position,
-	 *					GL_PROJECTION is made up of a stack with two matrices which
-	 *					means we can make up to 2 seperate changes to the camera.
-	 *
-	 *	GL_MODELVIEW	This matrix mode is set to have the dimensions defined above
-	 *					by GL_PROJECTION so the renderer can draw only what the camera
-	 *					is looking at. GL_MODELVIEW has a total of 32 matrices on it's
-	 *					stack, so this way we can make up to 32 matrix changes like,
-	 *					scaling, rotating, translating, or flipping.
-	 *
-	 *	glOrtho			glOrtho sets our ortho, or our cameras resolution. This can also
-	 *					be used to set the position of the camera on the x and y axis
-	 *					like we have done. The glOrtho must be set while the stack is in
-	 *					GL_PROJECTION mode, as this is the mode that gives the
-	 *					camera properties.
-	 *
-	 *	glPushMatrix	This creates a "new" matrix. What it really does is pull a matrix
-	 *					off the bottom of the stack and puts it on the top so the renderer
-	 *					can draw on it.
-	 *
-	 *	glLoadIdentity	This scales the current matrix back to the origin so the
-	 *					translations are seen normally on a stack.
-	 */
-
-	glMatrixMode(GL_PROJECTION);
-	//glPushMatrix();
-	glLoadIdentity();
-	//glOrtho(-SCREEN_WIDTH/2,SCREEN_WIDTH/2,-SCREEN_HEIGHT/2,SCREEN_HEIGHT/2,-1000,1000);
-	//glOrtho(-640,640,-360,360,1000,-1000);
-	//glFrustum(-640,640,-360,360,1000000000,100000);
-	perspectiveGl(90.0f,SCREEN_WIDTH/SCREEN_HEIGHT,0.1f,1000.0f);
-	//glFrustum(-1,1,-1,1,0, 20);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	glPushMatrix();
-
-	/*
-	 * glPushAttrib		This passes attributes to the renderer so it knows what it can
-	 *					render. In our case, GL_DEPTH_BUFFER_BIT allows the renderer to
-	 *					draw multiple objects on top of one another without blending the
-	 *					objects together; GL_LIGHING_BIT allows the renderer to use shaders
-	 *					and other lighting effects to affect the scene.
-	 *
-	 * glClear 			This clears the new matrices using the type passed. In our case:
-	 *					GL_COLOR_BUFFER_BIT allows the matrices to have color on them
-	 */
-
-	glPushAttrib(GL_DEPTH_BUFFER_BIT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glRotatef(cameraRot.x,1.0,0.0,0.0);
-	glRotatef(cameraRot.y,0.0,1.0,0.0);
-	glTranslatef(-cameraPos.x,-cameraPos.y,-cameraPos.z);
-	//glScalef(.25f,.25f,.25f);
-
-	/**************************
-	**** RENDER STUFF HERE ****
-	**************************/
-
-	// static float f[] = {0,0,0,		0,255,255,
-	// 					100,0,0,	255,255,0,
-	// 					100,0,100,	0,0,255,
-	// 					0,0,100,	0,255,0,
-	// 					50,100,50,	255,0,0};
-
-	// static float t[] = {200,0,0,	255,0,255,
-	// 					400,0,0,	0,255,0,
-	// 					400,0,200,	0,0,255,
-	// 					200,0,200,	255,0,0,
-	// 					300,200,100,0,255,0};
-
-	/*static float f[] = {0,0,0,		0,255,255,
-						1,0,0,		255,255,0,
-						1,0,-1,		0,0,255,
-						0,0,-1,		0,255,0,
-						.5,1,-.5,	255,0,0};
-
-	static float t[] = {2,0,0,		255,0,255,
-						4,0,0,		0,255,0,
-						4,0,-2,		0,0,255,
-						2,0,-2,		255,0,0,
-						3,2,-1,		255,255,50};
-
-	static unsigned int index[] =  {0,1,2,2,3,0,
-									0,1,4,
-									1,2,4,
-									2,3,4,
-									3,0,4};*/
-
-	/*static float t[] = {0,0,0,
-						100,0,0,
-						50,100,0};
-	static unsigned int ind[] = {0,1,2};*/
-
-	/*
-	//glEnable(GL_CULL_FACE);
-	//glCullFace(GL_BACK);
-	//glDepthRange(0,1000000000000000);
-
-	glEnableClientState(GL_VERTEX_ARRAY);
-	//glEnableClientState(GL_COLOR_ARRAY);
-
-
-	glVertexPointer(3,GL_FLOAT,6*sizeof(float),&c.verts[0]);
-	//glColorPointer(3,GL_FLOAT,6*sizeof(float),&f[3]);
-	glDrawElements(GL_TRIANGLES,c.vertOrder.size(),GL_UNSIGNED_INT,&c.vertOrder[0]);
-	*/
-	glColor4f(1,1,1,1);
-	for(auto &c : world.chunk){
-		for(auto &bx : c.second.block){
-			for(auto &by : bx){
-				for(auto &b : by){
-					glActiveTexture(GL_TEXTURE0);
-					glBindTexture(GL_TEXTURE_2D, b.texture);
-					//glEnable(GL_TEXTURE_2D);
-					glBegin(GL_QUADS);
-					for(uint i = 0; i < b.verts.size();i+=4){
-						glUniform1i(glGetUniformLocation(shaderProgram, "sampler"), 0);
-						glUseProgram(shaderProgram);
-						//glColor4f(b.colors[(int)i/4].r, b.colors[(int)i/4].g, b.colors[(int)i/4].b,1.0f);
-						switch(b.normals[(int)i/4]){
-							case NEAR:
-								glNormal3f(0.0f,0.0f,1.0f);
-								break;
-							case FAR:
-								glNormal3f(0.0f,0.0f,-1.0f);
-								break;
-							case TOP:
-								glNormal3f(0.0f,1.0f,0.0f);
-								break;
-							case BOTTOM:
-								glNormal3f(0.0f,-1.0f,0.0f);
-								break;
-							case LEFT:
-								glNormal3f(-1.0f,0.0f,0.0f);
-								break;
-							case RIGHT:
-								glNormal3f(1.0f,0.0f,0.0f);
-								break;
-						}
-						glTexCoord2f(0,1);
-							glVertex3f(b.verts[i].x, b.verts[i].y, b.verts[i].z);
-						glTexCoord2f(1,1);
-							glVertex3f(b.verts[i+1].x, b.verts[i+1].y, b.verts[i+1].z);
-						glTexCoord2f(1,0);
-							glVertex3f(b.verts[i+2].x, b.verts[i+2].y, b.verts[i+2].z);
-						glTexCoord2f(0,0);
-							glVertex3f(b.verts[i+3].x, b.verts[i+3].y, b.verts[i+3].z);
-						glUseProgram(0);
-					}
-					glEnd();
-					//glDisable(GL_TEXTURE_2D);
-				}
-			}
-		}
-	}
-	/*glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, world.blockAt({0,0,0})->texture);              // Select A Texture Based On filter
-	glEnable(GL_TEXTURE_2D);
-	glBegin(GL_QUADS);                          // Start Drawing Quads
-	    // Front Face
-	    glNormal3f( 0.0f, 0.0f, 1.0f);                  // Normal Pointing Towards Viewer
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 1 (Front)
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 2 (Front)
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Front)
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 4 (Front)
-	    // Back Face
-	    glNormal3f( 0.0f, 0.0f,-1.0f);                  // Normal Pointing Away From Viewer
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Back)
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 2 (Back)
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 3 (Back)
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 4 (Back)
-	    // Top Face
-	    glNormal3f( 0.0f, 1.0f, 0.0f);                  // Normal Pointing Up
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 1 (Top)
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 2 (Top)
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Top)
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 4 (Top)
-	    // Bottom Face
-	    glNormal3f( 0.0f,-1.0f, 0.0f);                  // Normal Pointing Down
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Bottom)
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 2 (Bottom)
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 3 (Bottom)
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 4 (Bottom)
-	    // Right face
-	    glNormal3f( 1.0f, 0.0f, 0.0f);                  // Normal Pointing Right
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f( 1.0f, -1.0f, -1.0f);  // Point 1 (Right)
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f( 1.0f,  1.0f, -1.0f);  // Point 2 (Right)
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f( 1.0f,  1.0f,  1.0f);  // Point 3 (Right)
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f( 1.0f, -1.0f,  1.0f);  // Point 4 (Right)
-	    // Left Face
-	    glNormal3f(-1.0f, 0.0f, 0.0f);                  // Normal Pointing Left
-	    glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);  // Point 1 (Left)
-	    glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f,  1.0f);  // Point 2 (Left)
-	    glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f,  1.0f,  1.0f);  // Point 3 (Left)
-	    glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f,  1.0f, -1.0f);  // Point 4 (Left)
-	glEnd();
-
-	glDisable(GL_TEXTURE_2D);*/
-
-	/*
-	 * These next two function finish the rendering
-	 *
-	 *	glPopMatrix			This anchors all of the matrices and blends them to a single
-	 *						matrix so the renderer can draw this to the screen, since screens
-	 *						are only 2 dimensions, we have to combine the matrixes to be 2d.
-	 *
-	 *  SDL_GL_SwapWindow	Since SDL has control over our renderer, we need to now give our
-	 *						new matrix to SDL so it can pass it to the window.
-	 */
-
-	// glTranslatef(cameraPos.x,cameraPos.y,cameraPos.z);
-	// glRotatef(cameraRot.y,0.0,1.0,0.0);
-	// glRotatef(cameraRot.x,1.0,0.0,0.0);
-
-	glPopMatrix();
-	SDL_GL_SwapWindow(window);
-}
-
-void logic(){
-
-	loops++;
 }

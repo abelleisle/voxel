@@ -20,15 +20,17 @@
 #include <algorithm>
 #include <unordered_map>
 #include <memory>
-#include <threadpool.h>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_mixer.h>
+
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/noise.hpp>
 
 const int CHUNK_WIDTH = 16;
 const int CHUNK_HEIGHT = 16;
