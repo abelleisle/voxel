@@ -36,23 +36,50 @@ const int CHUNK_WIDTH = 16;
 const int CHUNK_HEIGHT = 16;
 const int CHUNK_DEPTH = 16;
 
-typedef struct{
+class vec2{
+public:
 	float x;
 	float y;
-}vec2;
 
-typedef struct{
+	vec2(float _x, float _y){
+		x = _x;
+		y = _y;
+	}
+	vec2(){x=y=0;}
+};
+
+class vec3{
+public:
 	float x;
 	float y;
 	float z;
 
-	/*vec3(float _x, float _y, float _z){
+	vec3(float _x, float _y, float _z){
 		x = _x;
 		y = _y;
 		z = _z;
-		return this;
-	}*/
-}vec3;
+	}
+	vec3(){x=y=z=0;}
+	vec3 operator+(vec3 &o){
+		return vec3(this->x + o.x, this->y + o.y, this->z + o.z);
+	}
+};
+
+class blockData{
+public:
+	float x;
+	float y;
+	float z;
+	float w;
+
+	blockData(float _x, float _y, float _z, float _w){
+		x = _x;
+		y = _y;
+		z = _z;
+		w = _w;
+	}
+	blockData(){x=y=z=w=0;}
+};
 
 typedef struct{
 	float r;
@@ -60,11 +87,15 @@ typedef struct{
 	float b;
 }Color;
 
+static vec2 screen;
+
 uint vec3Hash(vec3 l);
 
 vec3 vec3FromHash(uint hash);
 
 const char *readFile(const char *path);
+
+float blockIndex(uint id, uint side);
 
 template<typename N, size_t s>
 size_t arrAmt(N (&)[s]){return s;}

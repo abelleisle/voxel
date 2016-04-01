@@ -1,4 +1,4 @@
-#include <common.h>
+#include <common.hpp>
 
 uint vec3Hash(vec3 l){
 	return ((uint8_t)l.x << 16) | ((uint8_t)l.y << 8) | ((uint8_t)l.z);
@@ -30,4 +30,8 @@ const char *readFile(const char *path){
 
 	in.close();
 	return buf;
+}
+
+float blockIndex(uint id, uint side){
+	return id +(side/10.0f);
 }

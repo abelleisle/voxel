@@ -2,27 +2,26 @@
 #include <istream>
 #include <thread>
 
-#include <common.h>
-#include "shader_utils.h"
+#include <common.hpp>
+#include <shader_utils.hpp>
+#include <ui.hpp>
+#include <texture.hpp>
+//#include <block.hpp>
+
+bool gameRunning = true;
 
 GLuint shaderProgram;
 GLint attribute_coord, attribute_v_color;
-GLint uniform_mvp;
+GLint uniform_mvp, uniform_sampler;
+GLuint blockTexture;
 
-vec3 cameraPos;
-vec2 cameraRot;
+glm::vec3 cameraPos;
+glm::vec3 cameraRot;
+glm::vec3 angle;
 
-vec2 screen;
-
-GLuint vbo_cube_vertices, vbo_cube_colors;
+GLuint vbo_cube_vertices, vbo_cube_colors, vbo_cube_index;
 
 GLuint ibo_cube_elements;
-
-void reshape(int w, int h){
-	screen.x = w;
-	screen.y = h;
-	glViewport(0, 0, w, h);
-}
 
 static int init_resources(){
 	shaderProgram = create_program("frig.vert","frig.frag");
@@ -33,25 +32,30 @@ static int init_resources(){
 	attribute_coord = get_attrib(shaderProgram, "coord");
 	attribute_v_color = get_attrib(shaderProgram, "v_color");
 	uniform_mvp = get_uniform(shaderProgram, "mvp");
+	uniform_sampler = get_uniform(shaderProgram, "texture");
 
 	if(attribute_coord == -1 || uniform_mvp == -1)
 		return 0;
 
 	glEnableVertexAttribArray(attribute_coord);
 
-	cameraRot = {0,0};
+	cameraPos = glm::vec3(0,2,10);
+	cameraRot = glm::vec3(0,.5,0);
+
+	blockTexture = Texture::loadTexture("assets/blockSheet.png");
+	//std::cout << blockIndex(1,2) << std::endl;
 
 	GLfloat cube_vertices[] = {
 		// front
-		-1.0, -1.0,  1.0,
-		1.0, -1.0,  1.0,
-		1.0,  1.0,  1.0,
-		-1.0,  1.0,  1.0,
+		-1.0, -1.0,  1.0, blockIndex(1,2),
+		1.0, -1.0,  1.0, blockIndex(1,2),
+		1.0,  1.0,  1.0, blockIndex(1,2),
+		-1.0,  1.0,  1.0, blockIndex(1,2),
 		// back
-		-1.0, -1.0, -1.0,
-		1.0, -1.0, -1.0,
-		1.0,  1.0, -1.0,
-		-1.0,  1.0, -1.0,
+		-1.0, -1.0, -1.0, blockIndex(1,2),
+		1.0, -1.0, -1.0, blockIndex(1,2),
+		1.0,  1.0, -1.0, blockIndex(1,2),
+		-1.0,  1.0, -1.0, blockIndex(1,2)
 	};
 	glGenBuffers(1, &vbo_cube_vertices);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
@@ -101,28 +105,35 @@ static int init_resources(){
 }
 
 void render(void){
-	glm::mat4 rotx = glm::rotate(glm::mat4(1.0f), glm::radians(cameraRot.x), glm::vec3(0,1,0));
-	glm::mat4 roty = glm::rotate(glm::mat4(1.0f), glm::radians(cameraRot.y), glm::vec3(1,0,0));
+	cameraRot.x = sinf(angle.x) * cosf(angle.y);
+	cameraRot.y = sinf(angle.y);
+	cameraRot.z = cosf(angle.x) * cosf(angle.y);
 
-	glm::mat4 view = glm::lookAt(glm::vec3(0.0f,2.0f,10.0f), glm::vec3(0.0f, 0.0f, -10.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 projection = glm::perspective(45.0f, 1.0f*screen.x/screen.y, 0.01f, 1000.0f);
-	glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0, 0.0, -10.0));
+	float ratio = (screen.x >= screen.y ? screen.x / screen.y : screen.y / screen.x);
 
-	glm::mat4 mvp = projection * view * rotx * roty * model;
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos+cameraRot, glm::vec3(0.0f, 1.0f, 0.0f));
+	glm::mat4 projection = glm::perspective(45.0f, 1.0f*ratio, 0.01f, 1000.0f);
+
+	glm::mat4 mvp = projection * view;
 
 	glUseProgram(shaderProgram);
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,blockTexture);
+	glUniform1f(uniform_sampler,0);
 
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
+
 	// Describe our vertices array to OpenGL (it can't guess its format automatically)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
 	glVertexAttribPointer(
 		attribute_coord, // attribute
-		3,                 // number of elements per vertex, here (x,y,z)
+		4,                 // number of elements per vertex, here (x,y,z)
 		GL_FLOAT,          // the type of each element
 		GL_FALSE,          // take our values as-is
 		0,                 // no extra data between each position
@@ -150,36 +161,8 @@ void render(void){
 }
 
 void mainLoop(SDL_Window *w){
-	while(true){
-		SDL_Event ev;
-		while (SDL_PollEvent(&ev)) {
-			switch (ev.type) {
-			case SDL_QUIT:
-				return;
-			case SDL_WINDOWEVENT:
-				if(ev.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-					reshape(ev.window.data1,ev.window.data2);
-				break;
-			case SDL_KEYUP:
-				switch(ev.key.keysym.sym) {
-					case SDLK_LEFT:
-						cameraRot.x -= 5;
-						break;
-					case SDLK_RIGHT:
-						cameraRot.x += 5;
-						break;
-					case SDLK_DOWN:
-						cameraRot.y -= 5;
-						break;
-					case SDLK_UP:
-						cameraRot.y += 5;
-						break;
-				}
-				break;
-			default:
-				break;
-			}
-		}
+	while(gameRunning){
+		ui::handleEvents();
 
 		render();
 		SDL_GL_SwapWindow(w);
@@ -200,7 +183,7 @@ int main(/*int argc, char *argv[]*/){
 	// Select an OpenGL ES 2.0 profile.
 	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
 	SDL_Window *window = SDL_CreateWindow("Voxel Engine",
 		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -219,8 +202,8 @@ int main(/*int argc, char *argv[]*/){
 	// Set relative mouse mode, this will grab the cursor.
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
-	SDL_GL_SetSwapInterval(1);
-	reshape(screen.x, screen.y);
+	SDL_GL_SetSwapInterval(0);
+	ui::reshape(screen.x, screen.y);
 
 	print_opengl_info();
 
