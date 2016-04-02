@@ -54,15 +54,19 @@ bool World::blockIsAir(vec3 l){
 	Chunk *chunkPtr = nullptr;
 
 	for(auto &c : chunk){
+		//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
+		//std::cout << c.second.loc.x << "," << c.second.loc.y << "," << c.second.loc.z << std::endl << std::endl;
 		if(c.second.hash == hash){
 			chunkPtr = &c.second;
 		}
 	}
-	if(chunkPtr==nullptr)
+	if(chunkPtr == nullptr){
+		//std::cout << "no chunk, " << a++ << std::endl;
 		return true;
+	}
 
 
-	if(chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type==AIR)
+	if(chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type == AIR)
 		return true;
 
 	return false;
@@ -72,7 +76,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	std::vector<std::pair<vec3,vec2>> verts;
 	if(this->type == AIR)return std::vector<std::pair<vec3,vec2>>();
 	//RIGHT
-	if(inChunk->inWorld->blockIsAir({loc.x+1,loc.y,loc.z})){
+	if(worldIn->blockIsAir({loc.x+1,loc.y,loc.z})){
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
@@ -85,7 +89,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	}
 
 	//LEFT
-	if(inChunk->inWorld->blockIsAir({loc.x-1,loc.y,loc.z})){
+	if(worldIn->blockIsAir({loc.x-1,loc.y,loc.z})){
 		verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
 		verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
 		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
@@ -98,7 +102,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	}
 
 	//TOP
-	if(inChunk->inWorld->blockIsAir({loc.x,loc.y+1,loc.z})){
+	if(worldIn->blockIsAir({loc.x,loc.y+1,loc.z})){
 		verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
@@ -110,7 +114,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	}
 
 	//BOTTOM
-	if(inChunk->inWorld->blockIsAir({loc.x,loc.y-1,loc.z})){
+	if(worldIn->blockIsAir({loc.x,loc.y-1,loc.z})){
 		verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
@@ -123,7 +127,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	}
 
 	//NEAR
-	if(inChunk->inWorld->blockIsAir({loc.x,loc.y,loc.z-1})){
+	if(worldIn->blockIsAir({loc.x,loc.y,loc.z-1})){
 
 		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
@@ -137,7 +141,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	}
 
 	//FAR
-	if(inChunk->inWorld->blockIsAir({loc.x,loc.y,loc.z+1})){
+	if(worldIn->blockIsAir({loc.x,loc.y,loc.z+1})){
 
 		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
 		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
@@ -157,9 +161,12 @@ Chunk::Chunk(){
 }
 
 Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in){
+
 	glGenBuffers(1,&vert_vbo);
 	glGenBuffers(1,&tex_vbo);
+
 	hash = vec3Hash(loc);
+
 	block.resize(CHUNK_WIDTH);
 	for(int x = 0; x < CHUNK_WIDTH; x++){
 		block[x].resize(CHUNK_HEIGHT);
@@ -170,14 +177,12 @@ Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in){
 	for(float y = 0; y < CHUNK_HEIGHT; y++){
 		for(float z = 0; z < CHUNK_DEPTH; z++){
 			for(float x = 0; x < CHUNK_WIDTH; x++){
-
-				block[x][y][z] = this->inWorld->generateBlock(vec3(x+loc.x,y+loc.y,z+loc.z));
-				block[x][y][z].inChunk = this;
+				block[x][y][z] = inWorld->generateBlock(vec3(x+loc.x,y+loc.y,z+loc.z));
+				block[x][y][z].worldIn = inWorld;
 			}
 
 		}
 	}
-	std::cout << "End of chunk" << std::endl;
 }
 
 void Chunk::updateBlocks(){
@@ -245,7 +250,6 @@ void World::createChunk(vec3 l){
 }
 
 void World::updateChunks(){
-	uint a = 0;
 	for(auto &c : chunk){
 		c.second.updateBlocks();
 		//thr.Enqueue([&]{c.second.updateBlocks();});

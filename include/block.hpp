@@ -9,6 +9,7 @@ const float blockBlockx = 3.0f;
 const float blockBlocky = 3.0f;
 
 class Chunk;
+class World;
 
 enum block_t{
 	AIR,
@@ -57,14 +58,13 @@ public:
 
 	uint id;
 
-	Chunk *inChunk;
+	World *worldIn;
 
 	Block();
 	Block(vec3 l);
 	std::vector<std::pair<vec3,vec2>>updateFaces();
 };
 
-class World;
 
 class Chunk{
 public:

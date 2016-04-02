@@ -47,6 +47,7 @@ static int init_resources(){
 	for(float x = -128; x < 128; x+=16)
 		for(float z = -128; z < 128; z+=16)
 			world.createChunk(vec3(x,0,z));
+	//world.createChunk(vec3(16,0,16));
 	world.updateChunks();
 
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
