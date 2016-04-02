@@ -1,13 +1,11 @@
-attribute vec4 coord;
-attribute vec3 v_color;
+attribute vec3 coord;
+attribute vec2 textureCoord;
 
 uniform mat4 mvp;
 
-varying vec3 f_color;
-varying vec4 texCoord;
+varying vec2 texCoord;
 
 void main(void) {
-    texCoord = coord;
+    texCoord = textureCoord;
     gl_Position = mvp * vec4(coord.xyz, 1.0);
-    f_color = v_color;
 }

@@ -6,12 +6,12 @@
 #include <shader_utils.hpp>
 #include <ui.hpp>
 #include <texture.hpp>
-//#include <block.hpp>
+#include <block.hpp>
 
 bool gameRunning = true;
 
 GLuint shaderProgram;
-GLint attribute_coord, attribute_v_color;
+GLint attribute_coord, attribute_t_index;
 GLint uniform_mvp, uniform_sampler;
 GLuint blockTexture;
 
@@ -19,9 +19,11 @@ glm::vec3 cameraPos;
 glm::vec3 cameraRot;
 glm::vec3 angle;
 
-GLuint vbo_cube_vertices, vbo_cube_colors, vbo_cube_index;
+GLuint vbo_cube_vertices, vbo_cube_texIndex, vbo_cube_index;
 
 GLuint ibo_cube_elements;
+
+World world;
 
 static int init_resources(){
 	shaderProgram = create_program("frig.vert","frig.frag");
@@ -30,7 +32,7 @@ static int init_resources(){
 		return 0;
 
 	attribute_coord = get_attrib(shaderProgram, "coord");
-	attribute_v_color = get_attrib(shaderProgram, "v_color");
+	attribute_t_index = get_attrib(shaderProgram, "textureCoord");
 	uniform_mvp = get_uniform(shaderProgram, "mvp");
 	uniform_sampler = get_uniform(shaderProgram, "texture");
 
@@ -39,64 +41,129 @@ static int init_resources(){
 
 	glEnableVertexAttribArray(attribute_coord);
 
-	cameraPos = glm::vec3(0,2,10);
-	cameraRot = glm::vec3(0,.5,0);
+	cameraPos = glm::vec3(0,2.0,10.0);
+	cameraRot = glm::vec3(0,0,0);
+
+	for(float x = -128; x < 128; x+=16)
+		for(float z = -128; z < 128; z+=16)
+			world.createChunk(vec3(x,0,z));
+	world.updateChunks();
 
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
+
+	glUseProgram(shaderProgram);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D,blockTexture);
+	glUniform1f(uniform_sampler,0);
+
+
+	glClearColor(0.6, 0.8, 1.0, 0.0);
 	//std::cout << blockIndex(1,2) << std::endl;
 
 	GLfloat cube_vertices[] = {
 		// front
-		-1.0, -1.0,  1.0, blockIndex(1,2),
-		1.0, -1.0,  1.0, blockIndex(1,2),
-		1.0,  1.0,  1.0, blockIndex(1,2),
-		-1.0,  1.0,  1.0, blockIndex(1,2),
+		-1.0, -1.0,  1.0, // bottom left // 0
+		 1.0, -1.0,  1.0, // bottom right
+		 1.0,  1.0,  1.0, // top right
+		-1.0,  1.0,  1.0, // top left
+
 		// back
-		-1.0, -1.0, -1.0, blockIndex(1,2),
-		1.0, -1.0, -1.0, blockIndex(1,2),
-		1.0,  1.0, -1.0, blockIndex(1,2),
-		-1.0,  1.0, -1.0, blockIndex(1,2)
+		-1.0, -1.0, -1.0, // bottom left // 4
+		 1.0, -1.0, -1.0, // bottom right
+		 1.0,  1.0, -1.0, // top right
+		-1.0,  1.0, -1.0, // top left
+
+		// left
+		-1.0, -1.0, -1.0,  // bottom left // 8
+		-1.0, -1.0,  1.0,  // bottom right
+		-1.0,  1.0,  1.0,  // top right
+		-1.0,  1.0, -1.0,  // top left
+
+		// right
+		 1.0, -1.0, -1.0, // bottom left // 12
+		 1.0, -1.0,  1.0, // bottom right
+		 1.0,  1.0,  1.0, // top right
+		 1.0,  1.0, -1.0, // top left
+
+		 // top
+ 		-1.0,  1.0,  1.0, // bottom left // 16
+ 		 1.0,  1.0,  1.0, // bottom right
+ 		 1.0,  1.0, -1.0, // top right
+ 		-1.0,  1.0, -1.0, // top left
+
+		 // bottom
+ 		-1.0, -1.0,  1.0, // bottom left // 20
+ 		 1.0, -1.0,  1.0, // bottom right
+ 		 1.0, -1.0, -1.0, // top right
+ 		-1.0, -1.0, -1.0, // top left
 	};
 	glGenBuffers(1, &vbo_cube_vertices);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-	GLfloat cube_colors[] = {
-		// front colors
-		1.0, 0.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 0.0, 1.0,
-		1.0, 1.0, 1.0,
-		// back colors
-		1.0, 0.0, 0.0,
-		0.0, 1.0, 0.0,
-		0.0, 0.0, 1.0,
-		1.0, 1.0, 1.0,
+	GLfloat cube_tex[] = {
+		// front coords
+		0.0, 0.33,
+		0.33, 0.33,
+		0.33, 0.66,
+		0.0, 0.66,
+
+		// back coords
+		0.0, 0.33,
+		0.33, 0.33,
+		0.33, 0.66,
+		0.0, 0.66,
+
+		// left coords
+		0.0, 0.33,
+		0.33, 0.33,
+		0.33, 0.66,
+		0.0, 0.66,
+
+		// right coords
+		0.0, 0.33,
+		0.33, 0.33,
+		0.33, 0.66,
+		0.0, 0.66,
+
+		// top coords
+		0.0, 0.66,
+		0.33, 0.66,
+		0.33, 1.0,
+		0.0, 1.0,
+
+		// bottom coords
+		0.0, 0.0,
+		0.33, 0.0,
+		0.33, 0.33,
+		0.0, 0.33,
 	};
-	glGenBuffers(1, &vbo_cube_colors);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_colors), cube_colors, GL_STATIC_DRAW);
+	glGenBuffers(1, &vbo_cube_texIndex);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_texIndex);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_tex), cube_tex, GL_STATIC_DRAW);
 
 	GLushort cube_elements[] = {
 		// front
 		0, 1, 2,
 		2, 3, 0,
-		// top
-		1, 5, 6,
-		6, 2, 1,
 		// back
-		7, 6, 5,
-		5, 4, 7,
-		// bottom
-		4, 0, 3,
-		3, 7, 4,
+		4, 5, 6,
+		6, 7, 4,
 		// left
-		4, 5, 1,
-		1, 0, 4,
+		8, 9, 10,
+		10, 11, 8,
 		// right
-		3, 2, 6,
-		6, 7, 3,
+		12, 13, 14,
+		14, 15, 12,
+		// top
+		16, 17, 18,
+		18, 19, 16,
+		// bottom
+		20, 21, 22,
+		22, 23, 20,
 	};
+
 	glGenBuffers(1, &ibo_cube_elements);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
@@ -119,45 +186,46 @@ void render(void){
 	glUseProgram(shaderProgram);
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
 
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D,blockTexture);
-	glUniform1f(uniform_sampler,0);
-
-	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
 	glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
+	glEnableVertexAttribArray(attribute_t_index);
 
-	// Describe our vertices array to OpenGL (it can't guess its format automatically)
+
+	/*// Describe our vertices array to OpenGL (it can't guess its format automatically)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
 	glVertexAttribPointer(
 		attribute_coord, // attribute
-		4,                 // number of elements per vertex, here (x,y,z)
+		3,                 // number of elements per vertex, here (x,y,z,w)
 		GL_FLOAT,          // the type of each element
 		GL_FALSE,          // take our values as-is
 		0,                 // no extra data between each position
 		0                  // offset of first element
 	);
 
-	glEnableVertexAttribArray(attribute_v_color);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_colors);
+	glEnableVertexAttribArray(attribute_t_index);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_texIndex);
 	glVertexAttribPointer(
-		attribute_v_color, // attribute
-		3,                 // number of elements per vertex, here (R,G,B)
+		attribute_t_index, // attribute
+		2,                 // number of elements per vertex, here (x,y)
 		GL_FLOAT,          // the type of each element
 		GL_FALSE,          // take our values as-is
 		0,                 // no extra data between each position
 		0                  // offset of first element
-	);
+	);*/
 
 	/* Push each element in buffer_vertices to the vertex shader */
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
+	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-	glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);*/
+
+	for(auto &c : world.chunk){
+		c.second.render();
+	}
 
 	glDisableVertexAttribArray(attribute_coord);
-	glDisableVertexAttribArray(attribute_v_color);
+	glDisableVertexAttribArray(attribute_t_index);
 }
 
 void mainLoop(SDL_Window *w){
@@ -172,7 +240,7 @@ void mainLoop(SDL_Window *w){
 void free_resources(){
 	glDeleteProgram(shaderProgram);
 	glDeleteBuffers(1, &vbo_cube_vertices);
-	glDeleteBuffers(1, &vbo_cube_colors);
+	glDeleteBuffers(1, &vbo_cube_texIndex);
 	glDeleteBuffers(1, &ibo_cube_elements);
 }
 
