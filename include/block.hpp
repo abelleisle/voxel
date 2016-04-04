@@ -1,11 +1,12 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include <stdexcept>
 #include <common.hpp>
 #include <texture.hpp>
 #include <threadpool.hpp>
 
-const float blockBlockx = 3.0f;
+const float blockBlockx = 5.0f;
 const float blockBlocky = 3.0f;
 
 class Chunk;
@@ -13,7 +14,9 @@ class World;
 
 enum block_t{
 	AIR,
-	SOLID
+	SOLID,
+	GLASS,
+	LIQUID
 };
 
 //image id
@@ -79,7 +82,7 @@ public:
 	int elements = 0;
 
 	vec3 loc;
-	uint hash;
+	unsigned long long hash;
 
 	World *inWorld;
 
@@ -93,7 +96,7 @@ public:
 class World{
 public:
 
-	std::unordered_map<uint, Chunk>chunk;
+	std::unordered_map<unsigned long long, Chunk>chunk;
 
 	World();
 

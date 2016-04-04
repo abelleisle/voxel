@@ -89,9 +89,9 @@ typedef struct{
 
 static vec2 screen;
 
-uint vec3Hash(vec3 l);
+unsigned long long vec3Hash(vec3 l);
 
-vec3 vec3FromHash(uint hash);
+vec3 vec3FromHash(unsigned long long hash);
 
 const char *readFile(const char *path);
 

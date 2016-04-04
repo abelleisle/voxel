@@ -10,8 +10,8 @@ extern glm::vec3 cameraPos;
 extern glm::vec3 cameraRot;
 extern glm::vec3 angle;
 
-const float front = .5;
-const float side = .3;
+float front = .5;
+float side = .3;
 
 bool downMov = false, upMov = false;
 bool frontMov = false, backMov = false;
@@ -26,7 +26,7 @@ namespace ui{
         glViewport(0, 0, w, h);
     }
 
-    void handleEvents(){
+    void handleEvents(float dt){
         static SDL_Event e;
         while(SDL_PollEvent(&e)){
             switch(e.type){
@@ -76,7 +76,8 @@ namespace ui{
                         downMov = true;
                     }
                     if(e.key.keysym.sym == SDLK_LSHIFT){
-                        std::cout << "Shift" << std::endl;
+                        front*=2.0f;
+                        side*=2.0f;
                     }
                     break;
                 case SDL_KEYUP:
@@ -98,6 +99,10 @@ namespace ui{
                     if(e.key.keysym.sym == SDLK_d){
                         rightMov = false;
                     }
+                    if(e.key.keysym.sym == SDLK_LSHIFT){
+                        front/=2.0f;
+                        side/=2.0f;
+                    }
 
                 default:
                     break;
@@ -105,26 +110,26 @@ namespace ui{
             }
         }
         if(upMov){
-            cameraPos.y += .05 * front;
+            cameraPos.y += .025f * front * dt;
         }
         if(downMov){
-            cameraPos.y -= .05 * front;
+            cameraPos.y -= .025f * front * dt;
         }
         if(frontMov){
-            cameraPos.x += float(sin(angle.x))*.05*front;
-            cameraPos.z += float(cos(angle.x))*.05*front;
+            cameraPos.x += float(sin(angle.x))*.025f*front*dt;
+            cameraPos.z += float(cos(angle.x))*.025f*front*dt;
         }
         if(backMov){
-            cameraPos.x -= float(sin(angle.x))*.05*front;
-            cameraPos.z -= float(cos(angle.x))*.05*front;
+            cameraPos.x -= float(sin(angle.x))*.025f*front*dt;
+            cameraPos.z -= float(cos(angle.x))*.025f*front*dt;
         }
         if(leftMov){
-            cameraPos.x += float(cos(angle.x))*.05*side;
-            cameraPos.z -= float(sin(angle.x))*.05*side;
+            cameraPos.x += float(cos(angle.x))*.025f*side*dt;
+            cameraPos.z -= float(sin(angle.x))*.025f*side*dt;
         }
         if(rightMov){
-            cameraPos.x -= float(cos(angle.x))*.05*side;
-            cameraPos.z += float(sin(angle.x))*.05*side;
+            cameraPos.x -= float(cos(angle.x))*.025f*side*dt;
+            cameraPos.z += float(sin(angle.x))*.025f*side*dt;
         }
 
     }

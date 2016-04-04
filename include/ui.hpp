@@ -5,7 +5,7 @@
 
 namespace ui{
 	void reshape(int w, int h);
-	void handleEvents();
+	void handleEvents(float dt);
 }
 
 #endif //UI_H

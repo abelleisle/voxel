@@ -27,46 +27,42 @@ Block* World::blockAt(vec3 l){
 	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
 	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
-	uint hash = vec3Hash(buf);
+	unsigned long long hash = vec3Hash(buf);
 	Chunk *chunkPtr = nullptr;
 
-	for(auto &c : chunk){
-		if(c.second.hash == hash){
-			chunkPtr = &c.second;
-		}
-	}
-	if(chunkPtr==nullptr)
+	try{
+		chunkPtr = &chunk.at(hash);
+	}catch(const std::out_of_range& oor){
 		return nullptr;
+	}
 
 	return &chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z];
 }
 
 bool World::blockIsAir(vec3 l){
-	//std::cout << "testing for air" << std::endl;
 	vec3 buf;
 	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
 	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
 	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
-	//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
-
-	uint hash = vec3Hash(buf);
+	unsigned long long hash = vec3Hash(buf);
 	Chunk *chunkPtr = nullptr;
 
-	for(auto &c : chunk){
-		//std::cout << buf.x << "," << buf.y << "," << buf.z << std::endl;
-		//std::cout << c.second.loc.x << "," << c.second.loc.y << "," << c.second.loc.z << std::endl << std::endl;
+	/*for(auto &c : chunk){
 		if(c.second.hash == hash){
 			chunkPtr = &c.second;
 		}
 	}
-	if(chunkPtr == nullptr){
-		//std::cout << "no chunk, " << a++ << std::endl;
+	if(chunkPtr == nullptr)
+		return true;*/
+	try{
+		chunkPtr = &chunk.at(hash);
+	}catch(const std::out_of_range& oor){
 		return true;
 	}
+	block_t ty = chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type;
 
-
-	if(chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z].type == AIR)
+	if(ty == AIR || ty == LIQUID || ty == GLASS)
 		return true;
 
 	return false;
@@ -75,83 +71,157 @@ bool World::blockIsAir(vec3 l){
 std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 	std::vector<std::pair<vec3,vec2>> verts;
 	if(this->type == AIR)return std::vector<std::pair<vec3,vec2>>();
-	//RIGHT
-	if(worldIn->blockIsAir({loc.x+1,loc.y,loc.z})){
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+	if(this->type == LIQUID || this->type == GLASS){
+		Block* ptr;
+		//RIGHT
+		ptr = worldIn->blockAt({loc.x+1,loc.y,loc.z});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
 
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[3]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
+		}else{
+		}
 
+		//LEFT
+		ptr = worldIn->blockAt({loc.x-1,loc.y,loc.z});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
+
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
+		}else{
+		}
+
+		//TOP
+		ptr = worldIn->blockAt({loc.x,loc.y+1,loc.z});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
+
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z+1), side.top[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
+		}else{
+		}
+
+		//BOTTOM
+		ptr = worldIn->blockAt({loc.x,loc.y-1,loc.z});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
+
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z+1), side.bottom[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
+		}else{
+		}
+
+		//NEAR
+		ptr = worldIn->blockAt({loc.x,loc.y,loc.z-1});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
+
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
+		}else{
+		}
+
+		//FAR
+		ptr = worldIn->blockAt({loc.x,loc.y,loc.z+1});
+		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
+		}else{
+		}
 	}else{
-	}
+		//RIGHT
+		if(worldIn->blockIsAir({loc.x+1,loc.y,loc.z})){
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
 
-	//LEFT
-	if(worldIn->blockIsAir({loc.x-1,loc.y,loc.z})){
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
+		}else{
+		}
 
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
+		//LEFT
+		if(worldIn->blockIsAir({loc.x-1,loc.y,loc.z})){
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
 
-	}else{
-	}
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
+		}else{
+		}
 
-	//TOP
-	if(worldIn->blockIsAir({loc.x,loc.y+1,loc.z})){
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
+		//TOP
+		if(worldIn->blockIsAir({loc.x,loc.y+1,loc.z})){
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
 
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z+1), side.top[3]));
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
-	}else{
-	}
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z+1), side.top[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
+		}else{
+		}
 
-	//BOTTOM
-	if(worldIn->blockIsAir({loc.x,loc.y-1,loc.z})){
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
+		//BOTTOM
+		if(worldIn->blockIsAir({loc.x,loc.y-1,loc.z})){
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
 
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z+1), side.bottom[3]));
-		verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z+1), side.bottom[3]));
+			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
+		}else{
+		}
 
-	}else{
-	}
+		//NEAR
+		if(worldIn->blockIsAir({loc.x,loc.y,loc.z-1})){
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
 
-	//NEAR
-	if(worldIn->blockIsAir({loc.x,loc.y,loc.z-1})){
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
+		}else{
+		}
 
-		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
+		//FAR
+		if(worldIn->blockIsAir({loc.x,loc.y,loc.z+1})){
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
 
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z), side.sides[3]));
-		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
-
-	}else{
-	}
-
-	//FAR
-	if(worldIn->blockIsAir({loc.x,loc.y,loc.z+1})){
-
-		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
-
-		verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
-		verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[3]));
-		verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
-
-	}else{
+			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
+			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[3]));
+			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
+		}else{
+		}
 	}
 	return verts;
 }
@@ -227,15 +297,23 @@ World::World(){
 
 Block World::generateBlock(vec3 l){
 	Block b;
-	if(l.y <= floor(4*sin(.25*(l.x + l.z)))+12){
+	if(l.y <= 10+floor(5*(sin(l.x/10)*cos(l.z/10)))){
 		b.type = SOLID;
 	}else{
 		b.type = AIR;
 	}
-	if(l.y >= floor(4*sin(.25*(l.x + l.z)))+12){
+	if(l.y >= 10+floor(5*(sin(l.x/10)*cos(l.z/10)))){
 		b.side = block_sides(vec2(0,1),vec2(0,2),vec2(0,0));
 	}else{
 		b.side = block_sides(vec2(0,0),vec2(0,0),vec2(0,0));
+	}
+	if(b.type == AIR && l.y <= 8){
+		b.type = LIQUID;
+		b.side = block_sides(vec2(3,2),vec2(3,2),vec2(3,2));
+	}
+	if(b.type == AIR && l.y > 8 && l.y <= 9){
+		b.type = GLASS;
+		b.side = block_sides(vec2(4,2),vec2(4,2),vec2(4,2));
 	}
 
 	//b.color = {0.0f,1.0f,0.0f};

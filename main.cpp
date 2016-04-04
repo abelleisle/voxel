@@ -44,8 +44,8 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	for(float x = -128; x < 128; x+=16)
-		for(float z = -128; z < 128; z+=16)
+	for(float x = -160; x < 224; x+=16)
+		for(float z = -160; z < 224; z+=16)
 			world.createChunk(vec3(x,0,z));
 	//world.createChunk(vec3(16,0,16));
 	world.updateChunks();
@@ -59,115 +59,10 @@ static int init_resources(){
 	glUniform1f(uniform_sampler,0);
 
 
+
 	glClearColor(0.6, 0.8, 1.0, 0.0);
-	//std::cout << blockIndex(1,2) << std::endl;
-
-	GLfloat cube_vertices[] = {
-		// front
-		-1.0, -1.0,  1.0, // bottom left // 0
-		 1.0, -1.0,  1.0, // bottom right
-		 1.0,  1.0,  1.0, // top right
-		-1.0,  1.0,  1.0, // top left
-
-		// back
-		-1.0, -1.0, -1.0, // bottom left // 4
-		 1.0, -1.0, -1.0, // bottom right
-		 1.0,  1.0, -1.0, // top right
-		-1.0,  1.0, -1.0, // top left
-
-		// left
-		-1.0, -1.0, -1.0,  // bottom left // 8
-		-1.0, -1.0,  1.0,  // bottom right
-		-1.0,  1.0,  1.0,  // top right
-		-1.0,  1.0, -1.0,  // top left
-
-		// right
-		 1.0, -1.0, -1.0, // bottom left // 12
-		 1.0, -1.0,  1.0, // bottom right
-		 1.0,  1.0,  1.0, // top right
-		 1.0,  1.0, -1.0, // top left
-
-		 // top
- 		-1.0,  1.0,  1.0, // bottom left // 16
- 		 1.0,  1.0,  1.0, // bottom right
- 		 1.0,  1.0, -1.0, // top right
- 		-1.0,  1.0, -1.0, // top left
-
-		 // bottom
- 		-1.0, -1.0,  1.0, // bottom left // 20
- 		 1.0, -1.0,  1.0, // bottom right
- 		 1.0, -1.0, -1.0, // top right
- 		-1.0, -1.0, -1.0, // top left
-	};
-	glGenBuffers(1, &vbo_cube_vertices);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
-
-	GLfloat cube_tex[] = {
-		// front coords
-		0.0, 0.33,
-		0.33, 0.33,
-		0.33, 0.66,
-		0.0, 0.66,
-
-		// back coords
-		0.0, 0.33,
-		0.33, 0.33,
-		0.33, 0.66,
-		0.0, 0.66,
-
-		// left coords
-		0.0, 0.33,
-		0.33, 0.33,
-		0.33, 0.66,
-		0.0, 0.66,
-
-		// right coords
-		0.0, 0.33,
-		0.33, 0.33,
-		0.33, 0.66,
-		0.0, 0.66,
-
-		// top coords
-		0.0, 0.66,
-		0.33, 0.66,
-		0.33, 1.0,
-		0.0, 1.0,
-
-		// bottom coords
-		0.0, 0.0,
-		0.33, 0.0,
-		0.33, 0.33,
-		0.0, 0.33,
-	};
-	glGenBuffers(1, &vbo_cube_texIndex);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_texIndex);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cube_tex), cube_tex, GL_STATIC_DRAW);
-
-	GLushort cube_elements[] = {
-		// front
-		0, 1, 2,
-		2, 3, 0,
-		// back
-		4, 5, 6,
-		6, 7, 4,
-		// left
-		8, 9, 10,
-		10, 11, 8,
-		// right
-		12, 13, 14,
-		14, 15, 12,
-		// top
-		16, 17, 18,
-		18, 19, 16,
-		// bottom
-		20, 21, 22,
-		22, 23, 20,
-	};
-
-	glGenBuffers(1, &ibo_cube_elements);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_elements), cube_elements, GL_STATIC_DRAW);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	return 1;
 }
@@ -180,7 +75,7 @@ void render(void){
 	float ratio = (screen.x >= screen.y ? screen.x / screen.y : screen.y / screen.x);
 
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos+cameraRot, glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 projection = glm::perspective(45.0f, 1.0f*ratio, 0.01f, 1000.0f);
+	glm::mat4 projection = glm::perspective(45.0f, 1.0f*ratio, 0.01f, 2048.0f);
 
 	glm::mat4 mvp = projection * view;
 
@@ -188,38 +83,16 @@ void render(void){
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_POLYGON_OFFSET_FILL);
+	//glFrontFace(GL_CW);
+	//glEnable(GL_CULL_FACE);
+
+	//glCullFace(GL_BACK);
 
 	glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
 	glEnableVertexAttribArray(attribute_t_index);
-
-
-	/*// Describe our vertices array to OpenGL (it can't guess its format automatically)
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_vertices);
-	glVertexAttribPointer(
-		attribute_coord, // attribute
-		3,                 // number of elements per vertex, here (x,y,z,w)
-		GL_FLOAT,          // the type of each element
-		GL_FALSE,          // take our values as-is
-		0,                 // no extra data between each position
-		0                  // offset of first element
-	);
-
-	glEnableVertexAttribArray(attribute_t_index);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_cube_texIndex);
-	glVertexAttribPointer(
-		attribute_t_index, // attribute
-		2,                 // number of elements per vertex, here (x,y)
-		GL_FLOAT,          // the type of each element
-		GL_FALSE,          // take our values as-is
-		0,                 // no extra data between each position
-		0                  // offset of first element
-	);*/
-
-	/* Push each element in buffer_vertices to the vertex shader */
-	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
-	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
-	glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);*/
 
 	for(auto &c : world.chunk){
 		c.second.render();
@@ -230,8 +103,26 @@ void render(void){
 }
 
 void mainLoop(SDL_Window *w){
+	static unsigned int prevTime    = 0,	// Used for timing operations
+						currentTime = 0;
+
+	static float deltaTime = 0;
+
+	if(!currentTime)						// Initialize currentTime if it hasn't been
+		currentTime = SDL_GetTicks();
+	if(!prevTime){
+		prevTime=currentTime;
+	}
+
+
 	while(gameRunning){
-		ui::handleEvents();
+		currentTime = SDL_GetTicks();
+		deltaTime	= currentTime - prevTime;
+		prevTime	= currentTime;
+
+		std::cout << 1000.0f/deltaTime << std::endl;
+
+		ui::handleEvents(deltaTime);
 
 		render();
 		SDL_GL_SwapWindow(w);

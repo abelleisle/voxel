@@ -1,14 +1,14 @@
 #include <common.hpp>
 
-uint vec3Hash(vec3 l){
-	return ((uint8_t)l.x << 16) | ((uint8_t)l.y << 8) | ((uint8_t)l.z);
+unsigned long long vec3Hash(vec3 l){
+	return ((uint64_t)l.x << 32) | ((uint32_t)l.y << 16) | ((uint16_t)l.z);
 }
 
-vec3 vec3FromHash(uint hash){
+vec3 vec3FromHash(unsigned long long hash){
 	vec3 lo;
 	lo.z = hash & 0xff;
-	lo.y = (hash >>= 8) & 0xff;
-	lo.x = (hash >>= 8) & 0xff;
+	lo.y = (hash >>= 16) & 0xff;
+	lo.x = (hash >>= 16) & 0xff;
 	return lo;
 }
 
