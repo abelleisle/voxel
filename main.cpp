@@ -44,8 +44,8 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	for(float x = -160; x < 224; x+=16)
-		for(float z = -160; z < 224; z+=16)
+	for(float x = -64; x < 64; x+=16)
+		for(float z = -64; z < 64; z+=16)
 			world.createChunk(vec3(x,0,z));
 	//world.createChunk(vec3(16,0,16));
 	world.updateChunks();

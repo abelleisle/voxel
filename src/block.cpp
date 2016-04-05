@@ -48,13 +48,6 @@ bool World::blockIsAir(vec3 l){
 	unsigned long long hash = vec3Hash(buf);
 	Chunk *chunkPtr = nullptr;
 
-	/*for(auto &c : chunk){
-		if(c.second.hash == hash){
-			chunkPtr = &c.second;
-		}
-	}
-	if(chunkPtr == nullptr)
-		return true;*/
 	try{
 		chunkPtr = &chunk.at(hash);
 	}catch(const std::out_of_range& oor){
@@ -75,7 +68,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 		Block* ptr;
 		//RIGHT
 		ptr = worldIn->blockAt({loc.x+1,loc.y,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
@@ -88,7 +81,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//LEFT
 		ptr = worldIn->blockAt({loc.x-1,loc.y,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
@@ -101,7 +94,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//TOP
 		ptr = worldIn->blockAt({loc.x,loc.y+1,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
@@ -114,7 +107,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//BOTTOM
 		ptr = worldIn->blockAt({loc.x,loc.y-1,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
@@ -127,7 +120,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//NEAR
 		ptr = worldIn->blockAt({loc.x,loc.y,loc.z-1});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
@@ -140,7 +133,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//FAR
 		ptr = worldIn->blockAt({loc.x,loc.y,loc.z+1});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && !(ptr->type == type)){
 			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
