@@ -28,6 +28,8 @@ World world;
 std::vector<GLuint*>buffersToGen;
 bool started;
 
+Chunk *chunkPtr = nullptr;
+
 static int init_resources(){
 	started = false;
 	shaderProgram = create_program("frig.vert","frig.frag");
@@ -111,7 +113,6 @@ void logic(){
 		buf.z = floor(cameraPos.z/CHUNK_DEPTH) * CHUNK_DEPTH;
 
 		unsigned long long hash = vec3Hash(buf);
-		Chunk *chunkPtr = nullptr;
 
 		/*chunkPtr = &world.chunk.at(hash);
 		if(chunkPtr == nullptr){
@@ -135,18 +136,6 @@ void logic(){
 			world.createChunk(buf);
 			world.updateChunk(buf);
 			chunkPtr = world.chunkAt(buf);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord.size() * sizeof(vec2), &chunkPtr->tex_coord[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo_water);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex_water.size() * sizeof(vec3), &chunkPtr->vertex_water[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo_water);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord_water.size() * sizeof(vec2), &chunkPtr->tex_coord_water[0], GL_STATIC_DRAW);
 		}
 	}
 
@@ -192,6 +181,21 @@ void mainLoop(SDL_Window *w){
 			glGenBuffers(1,b);
 		}
 		buffersToGen.clear();
+		if(chunkPtr != nullptr){
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord.size() * sizeof(vec2), &chunkPtr->tex_coord[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo_water);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex_water.size() * sizeof(vec3), &chunkPtr->vertex_water[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo_water);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord_water.size() * sizeof(vec2), &chunkPtr->tex_coord_water[0], GL_STATIC_DRAW);
+
+			chunkPtr = nullptr;
+		}
 
 		beforeRender = SDL_GetTicks();
 		render();

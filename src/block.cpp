@@ -292,6 +292,8 @@ Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in){
 
 		}
 	}
+
+	std::cout << "Done setting" << std::endl;
 }
 
 void Chunk::updateBlocks(){
