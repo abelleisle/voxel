@@ -5,6 +5,10 @@ extern GLint attribute_t_index;
 
 extern World world;
 
+extern std::vector<GLuint*>buffersToGen;
+extern bool started;
+
+
 std::mutex mtx;
 std::mutex blockMtx;
 ThreadPool thr(50);
@@ -37,6 +41,24 @@ Block* World::blockAt(vec3 l){
 	}
 
 	return &chunkPtr->block[l.x-buf.x][l.y-buf.y][l.z-buf.z];
+}
+
+Chunk* World::chunkAt(vec3 l){
+	vec3 buf;
+	buf.x = floor(l.x/CHUNK_WIDTH) * CHUNK_WIDTH;
+	buf.y = floor(l.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
+	buf.z = floor(l.z/CHUNK_DEPTH) * CHUNK_DEPTH;
+
+	unsigned long long hash = vec3Hash(buf);
+	Chunk *chunkPtr = nullptr;
+
+	try{
+		chunkPtr = &chunk.at(hash);
+	}catch(const std::out_of_range& oor){
+		return nullptr;
+	}
+
+	return chunkPtr;
 }
 
 bool World::blockIsAir(vec3 l){
@@ -75,7 +97,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 		Block* ptr;
 		//RIGHT
 		ptr = worldIn->blockAt({loc.x+1,loc.y,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,  loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
@@ -88,7 +110,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//LEFT
 		ptr = worldIn->blockAt({loc.x-1,loc.y,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y,  loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x,loc.y+1,loc.z+1), side.sides[2]));
@@ -101,7 +123,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//TOP
 		ptr = worldIn->blockAt({loc.x,loc.y+1,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x,  loc.y+1,loc.z), side.top[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.top[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.top[2]));
@@ -114,7 +136,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//BOTTOM
 		ptr = worldIn->blockAt({loc.x,loc.y-1,loc.z});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x,  loc.y,loc.z), side.bottom[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.bottom[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.bottom[2]));
@@ -127,7 +149,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//NEAR
 		ptr = worldIn->blockAt({loc.x,loc.y,loc.z-1});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z), side.sides[2]));
@@ -140,7 +162,7 @@ std::vector<std::pair<vec3,vec2>> Block::updateFaces(){
 
 		//FAR
 		ptr = worldIn->blockAt({loc.x,loc.y,loc.z+1});
-		if(ptr != nullptr && (ptr->type == AIR || ptr->type == LIQUID)){
+		if(ptr != nullptr && ptr->type == AIR){
 			verts.push_back(std::make_pair(vec3(loc.x, loc.y, loc.z+1), side.sides[0]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y,loc.z+1), side.sides[1]));
 			verts.push_back(std::make_pair(vec3(loc.x+1,loc.y+1,loc.z+1), side.sides[2]));
@@ -231,11 +253,25 @@ Chunk::Chunk(){
 }
 
 Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in){
+	std::cout << "Genning buffers" << std::endl;
+	if(started){
+		std::cout << "started" << std::endl;
+		buffersToGen.push_back(&vert_vbo);
+		buffersToGen.push_back(&tex_vbo);
+		buffersToGen.push_back(&vert_vbo_water);
+		buffersToGen.push_back(&tex_vbo_water);
+	}else{
+		glGenBuffers(1,&vert_vbo);
+		glGenBuffers(1,&tex_vbo);
+		glGenBuffers(1,&vert_vbo_water);
+		glGenBuffers(1,&tex_vbo_water);
+	}
 
-	glGenBuffers(1,&vert_vbo);
-	glGenBuffers(1,&tex_vbo);
+	std::cout << "Setting hash" << std::endl;
 
 	hash = vec3Hash(loc);
+
+	std::cout << "Resizing array" << std::endl;
 
 	block.resize(CHUNK_WIDTH);
 	for(int x = 0; x < CHUNK_WIDTH; x++){
@@ -244,6 +280,9 @@ Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in){
 			block[x][y].resize(CHUNK_DEPTH);
 		}
 	}
+
+	std::cout << "Setting blocks" << std::endl;
+
 	for(float y = 0; y < CHUNK_HEIGHT; y++){
 		for(float z = 0; z < CHUNK_DEPTH; z++){
 			for(float x = 0; x < CHUNK_WIDTH; x++){
@@ -261,19 +300,36 @@ void Chunk::updateBlocks(){
 		for(float z = 0; z < CHUNK_DEPTH; z++){
 			for(float x = 0; x < CHUNK_WIDTH; x++){
 				qwer = block[x][y][z].updateFaces();
-				for(auto &q : qwer){
-					vertex.push_back(q.first);
-					tex_coord.push_back(q.second);
-					elements++;
+				if(block[x][y][z].type == LIQUID){
+					for(auto &q : qwer){
+						vertex_water.push_back(q.first);
+						tex_coord_water.push_back(q.second);
+						elements_water++;
+					}
+				}else{
+					for(auto &q : qwer){
+						vertex.push_back(q.first);
+						tex_coord.push_back(q.second);
+						elements++;
+					}
 				}
 			}
 		}
 	}
-	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), &vertex[0], GL_STATIC_DRAW);
 
-	glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
-	glBufferData(GL_ARRAY_BUFFER, tex_coord.size() * sizeof(vec2), &tex_coord[0], GL_STATIC_DRAW);
+	if(!started){
+		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), &vertex[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
+		glBufferData(GL_ARRAY_BUFFER, tex_coord.size() * sizeof(vec2), &tex_coord[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo_water);
+		glBufferData(GL_ARRAY_BUFFER, vertex_water.size() * sizeof(vec3), &vertex_water[0], GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, tex_vbo_water);
+		glBufferData(GL_ARRAY_BUFFER, tex_coord_water.size() * sizeof(vec2), &tex_coord_water[0], GL_STATIC_DRAW);
+	}
 
 
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
@@ -289,6 +345,15 @@ void Chunk::render(){
 	glVertexAttribPointer(attribute_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);
 
+}
+
+void Chunk::renderL(){
+	glBindBuffer(GL_ARRAY_BUFFER, tex_vbo_water);
+	glVertexAttribPointer(attribute_t_index, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo_water);
+	glVertexAttribPointer(attribute_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	glDrawArrays(GL_TRIANGLES, 0, elements_water);
 }
 
 World::World(){
@@ -311,10 +376,10 @@ Block World::generateBlock(vec3 l){
 		b.type = LIQUID;
 		b.side = block_sides(vec2(3,2),vec2(3,2),vec2(3,2));
 	}
-	if(b.type == AIR && l.y > 8 && l.y <= 9){
+	/*if(b.type == AIR && l.y > 8 && l.y <= 9){
 		b.type = GLASS;
 		b.side = block_sides(vec2(4,2),vec2(4,2),vec2(4,2));
-	}
+	}*/
 
 	//b.color = {0.0f,1.0f,0.0f};
 	b.loc = l;
@@ -323,7 +388,10 @@ Block World::generateBlock(vec3 l){
 }
 
 void World::createChunk(vec3 l){
+	mtx.lock();
+	std::cout << "Emplacing new chunk" << std::endl;
 	chunk.emplace(vec3Hash(l),Chunk(l,this));
+	mtx.unlock();
 	//chunk.rehash();
 }
 
@@ -332,4 +400,8 @@ void World::updateChunks(){
 		c.second.updateBlocks();
 		//thr.Enqueue([&]{c.second.updateBlocks();});
 	}
+}
+
+void World::updateChunk(vec3 l){
+	chunkAt(l)->updateBlocks();
 }

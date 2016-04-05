@@ -25,7 +25,11 @@ GLuint ibo_cube_elements;
 
 World world;
 
+std::vector<GLuint*>buffersToGen;
+bool started;
+
 static int init_resources(){
+	started = false;
 	shaderProgram = create_program("frig.vert","frig.frag");
 
 	if(!shaderProgram)
@@ -44,9 +48,10 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	for(float x = -160; x < 224; x+=16)
-		for(float z = -160; z < 224; z+=16)
-			world.createChunk(vec3(x,0,z));
+	for(float x = -32; x < 32; x+=16)
+		for(float y = 0; y < 256; y+=16)
+			for(float z = -32; z < 32; z+=16)
+				world.createChunk(vec3(x,0,z));
 	//world.createChunk(vec3(16,0,16));
 	world.updateChunks();
 
@@ -57,8 +62,6 @@ static int init_resources(){
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D,blockTexture);
 	glUniform1f(uniform_sampler,0);
-
-
 
 	glClearColor(0.6, 0.8, 1.0, 0.0);
 	glEnable(GL_BLEND);
@@ -84,11 +87,6 @@ void render(void){
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_POLYGON_OFFSET_FILL);
-	//glFrontFace(GL_CW);
-	//glEnable(GL_CULL_FACE);
-
-	//glCullFace(GL_BACK);
 
 	glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
@@ -97,16 +95,83 @@ void render(void){
 	for(auto &c : world.chunk){
 		c.second.render();
 	}
+	for(auto &c : world.chunk){
+		c.second.renderL();
+	}
 
 	glDisableVertexAttribArray(attribute_coord);
 	glDisableVertexAttribArray(attribute_t_index);
 }
 
+void logic(){
+	static vec3 buf;
+	if(true){
+		buf.x = floor(cameraPos.x/CHUNK_WIDTH) * CHUNK_WIDTH;
+		buf.y = floor(cameraPos.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
+		buf.z = floor(cameraPos.z/CHUNK_DEPTH) * CHUNK_DEPTH;
+
+		unsigned long long hash = vec3Hash(buf);
+		Chunk *chunkPtr = nullptr;
+
+		/*chunkPtr = &world.chunk.at(hash);
+		if(chunkPtr == nullptr){
+			world.createChunk(buf);
+			world.updateChunk(buf);
+		}*/
+
+		/*for(auto &c : world.chunk){
+			if(c.second.hash == hash){
+				chunkPtr = &c.second;
+			}
+		}
+		if(chunkPtr == nullptr){
+			world.createChunk(buf);
+			world.updateChunk(buf);
+		}*/
+
+		try{
+			world.chunk.at(hash);
+		}catch(const std::out_of_range& oor){
+			world.createChunk(buf);
+			world.updateChunk(buf);
+			chunkPtr = world.chunkAt(buf);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord.size() * sizeof(vec2), &chunkPtr->tex_coord[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo_water);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex_water.size() * sizeof(vec3), &chunkPtr->vertex_water[0], GL_STATIC_DRAW);
+
+			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo_water);
+			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord_water.size() * sizeof(vec2), &chunkPtr->tex_coord_water[0], GL_STATIC_DRAW);
+		}
+	}
+
+}
+
+void callLogic(float *dt){
+	static float accum = 0.0f;
+	while(true){
+		accum += *dt;
+		if(accum >= (1000.0f/20.0f)){
+			accum = 0;
+			logic();
+		}
+	}
+}
+
+
 void mainLoop(SDL_Window *w){
+	started = true;
 	static unsigned int prevTime    = 0,	// Used for timing operations
 						currentTime = 0;
 
-	static float deltaTime = 0;
+	static float deltaTime = 0.0f;
+
+	static float beforeRender;
 
 	if(!currentTime)						// Initialize currentTime if it hasn't been
 		currentTime = SDL_GetTicks();
@@ -114,17 +179,23 @@ void mainLoop(SDL_Window *w){
 		prevTime=currentTime;
 	}
 
+	std::thread(callLogic,&deltaTime).detach();
 
 	while(gameRunning){
 		currentTime = SDL_GetTicks();
 		deltaTime	= currentTime - prevTime;
 		prevTime	= currentTime;
 
-		std::cout << 1000.0f/deltaTime << std::endl;
-
 		ui::handleEvents(deltaTime);
 
+		for(auto &b : buffersToGen){
+			glGenBuffers(1,b);
+		}
+		buffersToGen.clear();
+
+		beforeRender = SDL_GetTicks();
 		render();
+		std::cout << "Time to render: " << SDL_GetTicks() - beforeRender << std::endl;
 		SDL_GL_SwapWindow(w);
 	}
 }

@@ -74,12 +74,17 @@ public:
 	//std::unordered_map<uint, Block>block;
 	std::vector<std::vector<std::vector<Block>>>block;
 
-	GLuint vert_vbo;
-	GLuint tex_vbo;
+	GLuint vert_vbo, vert_vbo_water;
+	GLuint tex_vbo, tex_vbo_water;
+
+
 	std::vector<vec3>vertex;
 	std::vector<vec2>tex_coord;
 
-	int elements = 0;
+	std::vector<vec3>vertex_water;
+	std::vector<vec2>tex_coord_water;
+
+	int elements = 0, elements_water = 0;
 
 	vec3 loc;
 	unsigned long long hash;
@@ -89,6 +94,7 @@ public:
 	Chunk(vec3 l,World *in);
 	Chunk();
 	void render();
+	void renderL();
 
 	void updateBlocks();
 };
@@ -102,9 +108,11 @@ public:
 
 	void createChunk(vec3 l);
 	void updateChunks();
+	void updateChunk(vec3 l);
 
-	Block* blockAt(vec3);
-	bool blockIsAir(vec3);
+	Block* blockAt(vec3 l);
+	Chunk* chunkAt(vec3 l);
+	bool blockIsAir(vec3 l);
 
 	Block generateBlock(vec3 l);
 };
