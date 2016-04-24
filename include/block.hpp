@@ -6,11 +6,19 @@
 #include <texture.hpp>
 #include <threadpool.hpp>
 
+#define BOTTOM 	1
+#define TOP 	2
+#define RIGHT 	4
+#define LEFT 	8
+#define NEAR 	16
+#define FAR 	32
+
 const float blockBlockx = 5.0f;
 const float blockBlocky = 3.0f;
 
 class Chunk;
 class World;
+
 
 enum block_t{
 	AIR,
@@ -32,7 +40,7 @@ public:
 	std::vector<vec2> top;
 	std::vector<vec2> bottom;
 
-	block_sides(vec2 s, vec2 t, vec2 b){
+	block_sides(vec2 s, vec2 t, vec2 b) {
 		vec2 mult = vec2(1.0f/blockBlockx,1.0f/blockBlocky);
 		sides.push_back(vec2(s.x * mult.x, s.y * mult.y));
 		sides.push_back(vec2((s.x + 1) * mult.x, s.y * mult.y));
@@ -49,7 +57,7 @@ public:
 		bottom.push_back(vec2((b.x + 1) * mult.x, (b.y + 1) * mult.y));
 		bottom.push_back(vec2(b.x * mult.x, (b.y + 1) * mult.y));
 	}
-	block_sides(){}
+	block_sides() {}
 };// grass = block_s(vec2(0,1),vec2(0,2),vec2(0,0)), dirt = block_s(vec2(0,0),vec2(0,0),vec2(0,0));
 
 class Block{
@@ -60,12 +68,15 @@ public:
 	block_sides side;
 
 	uint id;
+	uint edge;
 
 	World *worldIn;
+	Chunk *inChunk;
 
 	Block();
 	Block(vec3 l);
-	std::vector<std::pair<vec3,vec2>>updateFaces();
+	~Block();
+	std::vector<std::pair<vec3,vec2>>updateFaces(bool child);
 };
 
 
@@ -74,21 +85,30 @@ public:
 	//std::unordered_map<uint, Block>block;
 	std::vector<std::vector<std::vector<Block>>>block;
 
-	GLuint vert_vbo;
-	GLuint tex_vbo;
+	GLuint vert_vbo, vert_vbo_water;
+	GLuint tex_vbo, tex_vbo_water;
+
+
 	std::vector<vec3>vertex;
 	std::vector<vec2>tex_coord;
 
-	int elements = 0;
+	std::vector<vec3>vertex_water;
+	std::vector<vec2>tex_coord_water;
+
+	int elements = 0, elements_water = 0;
+	int highest = 0;
+	bool canRender = false;
 
 	vec3 loc;
-	unsigned long long hash;
+	long long hash;
 
 	World *inWorld;
 
 	Chunk(vec3 l,World *in);
 	Chunk();
+	~Chunk();
 	void render();
+	void renderL();
 
 	void updateBlocks();
 };
@@ -96,17 +116,21 @@ public:
 class World{
 public:
 
-	std::unordered_map<unsigned long long, Chunk>chunk;
+	std::unordered_map<long long, Chunk>chunk;
 
 	World();
 
 	void createChunk(vec3 l);
 	void updateChunks();
+	void updateChunk(vec3 l);
 
-	Block* blockAt(vec3);
-	bool blockIsAir(vec3);
+	Block* blockAt(vec3 l);
+	Chunk* chunkAt(vec3 l);
+	bool blockIsAir(vec3 l);
 
-	Block generateBlock(vec3 l);
+	Block generateBlock(vec3 l, Chunk *ptr);
+	float noise2D(float x, float y, int octaves, float persistance);
+
 };
 
 //ID

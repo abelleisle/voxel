@@ -108,16 +108,16 @@ GLuint create_program(const char *vertexfile, const char *fragmentfile) {
 	GLuint program = glCreateProgram();
 	GLuint shader;
 
-	if(vertexfile) {
+	if (vertexfile) {
 		shader = create_shader(vertexfile, GL_VERTEX_SHADER);
-		if(!shader)
+		if (!shader)
 			return 0;
 		glAttachShader(program, shader);
 	}
 
-	if(fragmentfile) {
+	if (fragmentfile) {
 		shader = create_shader(fragmentfile, GL_FRAGMENT_SHADER);
-		if(!shader)
+		if (!shader)
 			return 0;
 		glAttachShader(program, shader);
 	}
@@ -137,7 +137,7 @@ GLuint create_program(const char *vertexfile, const char *fragmentfile) {
 
 GLint get_attrib(GLuint program, const char *name) {
 	GLint attribute = glGetAttribLocation(program, name);
-	if(attribute == -1)
+	if (attribute == -1)
 		SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR,
 					   "Could not bind attribute %s", name);
 	return attribute;
@@ -145,7 +145,7 @@ GLint get_attrib(GLuint program, const char *name) {
 
 GLint get_uniform(GLuint program, const char *name) {
 	GLint uniform = glGetUniformLocation(program, name);
-	if(uniform == -1)
+	if (uniform == -1)
 		SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_ERROR,
 					   "Could not bind uniform %s", name);
 	return uniform;

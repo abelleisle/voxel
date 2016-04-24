@@ -10,7 +10,7 @@ ThreadPool::ThreadPool(int threads) :
 	stopped(false)
 {
 	// Create number of required threads and add them to the thread pool vector.
-    for(int i = 0; i < threads; i++)
+    for (int i = 0; i < threads; i++)
     {
     	threadPool.emplace_back(thread(&ThreadPool::Invoke, this));
     }
@@ -34,7 +34,7 @@ void ThreadPool::Enqueue(function<void()> f)
 void ThreadPool::Invoke() {
 
 	function<void()> task;
-	while(true)
+	while (true)
 	{
 		// Scope based locking.
 		{
@@ -77,7 +77,7 @@ void ThreadPool::ShutDown()
 	condition.notify_all();
 
 	// Join all threads.
-	for(thread &thread : threadPool)
+	for (thread &thread : threadPool)
 	{
 		thread.join();
 	}
