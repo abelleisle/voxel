@@ -73,11 +73,11 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	// for(float x = -128; x <= 128; x+=16)
-	// 		for(float z = -128; z <= 128; z+=16)
-	// 			world.createChunk(vec3(x,0,z));
-	// //world.createChunk(vec3(16,0,16));
-	// world.updateChunks();
+	for(float x = -32; x <= 32; x+=16)
+			for(float z = -32; z <= 32; z+=16)
+				world.createChunk(vec3(x,0,z));
+	//world.createChunk(vec3(16,0,16));
+	world.updateChunks();
 
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
 
@@ -180,21 +180,6 @@ void logic(){
 }
 
 void callLogic(float *dt){
-	ThreadPool chunkCreate(50);
-	for (float x = -128; x <= 128; x+=16)
-		for (float z = -128; z <= 128; z+=16)
-			if (gameRunning) {
-				chunkCreate.Enqueue([&]{
-					world.createChunk(vec3(x,0,z));
-					world.updateChunk(vec3(x,0,z));
-
-					world.updateChunk(vec3(x - 16, 	0, z	 ));
-					world.updateChunk(vec3(x + 16, 	0, z	 ));
-					world.updateChunk(vec3(x,		0, z - 16));
-					world.updateChunk(vec3(x,		0, z + 16));
-				});
-			}
-
 	static float accum = 0.0f;
 	while (gameRunning) {
 		accum += *dt;
