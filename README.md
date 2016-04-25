@@ -2,7 +2,7 @@
 
 This is a stub mirror. The full source code for this commit is at:
 
-https://git.bitcicle.com/andy/voxel/src/commit/57871fa8b03d94d44df540cd81ab5e200fee5ea0
+https://git.bitcicle.com/andy/voxel/src/commit/3b756309fad908d6d381119c5dc52358117003a1
 
 To browse or clone the full repository, visit:
 
