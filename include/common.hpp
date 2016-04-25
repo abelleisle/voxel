@@ -35,7 +35,7 @@
 #include <shader_utils.hpp>
 
 const int CHUNK_WIDTH = 16;
-const int CHUNK_HEIGHT = 256;
+const int CHUNK_HEIGHT = 128;
 const int CHUNK_DEPTH = 16;
 
 const int CHUNK_RAD = 12;
@@ -96,8 +96,6 @@ static vec2 screen;
 long long vec3Hash(vec3 l);
 
 vec3 vec3FromHash(long long hash);
-
-float blockIndex(uint id, uint side);
 
 template<typename N, size_t s>
 size_t arrAmt(N (&)[s]) {return s;}

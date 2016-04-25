@@ -44,10 +44,11 @@ std::vector<GLuint*>buffersToGen;
 std::vector<Chunk*>chunkPtrs;
 
 // tells us if we have started the main loop
-bool started;
+bool started = false;
 
 std::mutex threadMtx;
 
+// the function we use to initialize opengl and the world
 static int init_resources(){
 	started = false;
 	shaderProgram = create_program("frig.vert","frig.frag");
@@ -73,10 +74,11 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	for(float x = -32; x <= 32; x+=16)
-			for(float z = -32; z <= 32; z+=16)
-				world.createChunk(vec3(x,0,z));
-	//world.createChunk(vec3(16,0,16));
+	for (float x = -32; x <= 32; x+=16) {
+		for (float z = -32; z <= 32; z+=16) {
+			world.createChunk(vec3(x,0,z));
+		}
+	}
 	world.updateChunks();
 
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
@@ -134,6 +136,7 @@ void logic(){
 	buf.x = floor(cameraPos.x/CHUNK_WIDTH) * CHUNK_WIDTH;
 	// use this if world height is made up of multiple chunks
 	//buf.y = floor(cameraPos.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
+
 	// use this if world height is only made up of 1 chunk
 	buf.y = 0;
 	buf.z = floor(cameraPos.z/CHUNK_DEPTH) * CHUNK_DEPTH;
@@ -142,15 +145,18 @@ void logic(){
 
 	try{
 		world.chunk.at(hash);
+		//std::cout << "in" << std::endl;
 	}catch(const std::out_of_range& oor){
+		//std::cout << "out" << std::endl;
 		world.createChunk(buf);
-		world.updateChunk(buf);
+		//world.updateChunk(buf);
 
 		//chunkPtrs.push_back(world.chunkAt(buf));
-		world.updateChunk(vec3(buf.x+CHUNK_WIDTH,buf.y,buf.z));
-		world.updateChunk(vec3(buf.x-CHUNK_WIDTH,buf.y,buf.z));
-		world.updateChunk(vec3(buf.x,buf.y,buf.z+CHUNK_DEPTH));
-		world.updateChunk(vec3(buf.x,buf.y,buf.z-CHUNK_DEPTH));
+
+		//world.updateChunk(vec3(buf.x+CHUNK_WIDTH,buf.y,buf.z));
+		//world.updateChunk(vec3(buf.x-CHUNK_WIDTH,buf.y,buf.z));
+		//world.updateChunk(vec3(buf.x,buf.y,buf.z+CHUNK_DEPTH));
+		//world.updateChunk(vec3(buf.x,buf.y,buf.z-CHUNK_DEPTH));
 
 		//threadMtx.lock();
 		//threadMtx.unlock();
@@ -162,21 +168,6 @@ void logic(){
 		}
 	}*/
 
-	/*poss = cameraPos;
-
-	poss.x = floor(poss.x/CHUNK_WIDTH) * CHUNK_WIDTH;
-	poss.y = floor(poss.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
-	poss.z = floor(poss.z/CHUNK_DEPTH) * CHUNK_DEPTH;
-
-	poss.x -= CHUNK_WIDTH * CHUNK_RAD;
-	poss.z -= CHUNK_DEPTH * CHUNK_RAD;
-	poss.y = cameraPos.y;
-
-	for(float x = poss.x; x < poss.x + CHUNK_WIDTH*(CHUNK_RAD+1);x+=CHUNK_WIDTH){
-		for(float z = poss.z; z < poss.z + CHUNK_DEPTH*(CHUNK_RAD+1);z+=CHUNK_DEPTH){
-
-		}
-	}*/
 }
 
 void callLogic(float *dt){
@@ -223,13 +214,14 @@ void mainLoop(SDL_Window *w){
 
 		ui::handleEvents(w, deltaTime);
 
-		threadMtx.lock();
-		for(auto &b : buffersToGen){
-			glGenBuffers(1,b);
-		}
-		buffersToGen.clear();
+		//threadMtx.lock();
+		//for(auto &b : buffersToGen){
+			//glGenBuffers(1,b);
+		//}
+		//buffersToGen.clear();
 
 		for(auto &chunkPtr : chunkPtrs){
+
 			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
 			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
 
@@ -245,7 +237,7 @@ void mainLoop(SDL_Window *w){
 			chunkPtr->canRender = true;
 		}
 		chunkPtrs.clear();
-		threadMtx.unlock();
+		//threadMtx.unlock();
 
 		float sx = 2.0 / screen.x;
 		float sy = 2.0 / screen.y;
@@ -253,13 +245,17 @@ void mainLoop(SDL_Window *w){
 		beforeRender = SDL_GetTicks();
 
 		render();
+
 		ui::text::render_text(std::string("FPS: " + std::to_string(int(fps))).c_str(), -1 + 8 * sx, 1 - 16 * sy, sx, sy);
 		ui::text::render_text(std::string("Pos: " + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ", " + std::to_string(cameraPos.z)).c_str(), -1 + 8 * sx, 1 - 36 * sy, sx, sy);
 		ui::text::render_text(std::string("Time to render: " + std::to_string(int(renderTimeAv))).c_str(), -1 + 8 * sx, 1 - 56 * sy, sx, sy);
 
+		SDL_GL_SwapWindow(w);
+
 		fpsTime += deltaTime;
 		renderTime += int(SDL_GetTicks() - beforeRender);
 		renderLoops++;
+
 		if(fpsTime >= 250){
 			fps = ((1000 * renderLoops) / fpsTime);
 			fpsTime = 0.0f;
@@ -269,7 +265,6 @@ void mainLoop(SDL_Window *w){
 
 			renderLoops = 0;
 		}
-		SDL_GL_SwapWindow(w);
 	}
 }
 
@@ -281,7 +276,7 @@ int main(/*int argc, char *argv[]*/){
 	screen = {1920,1080};
 	SDL_Init(SDL_INIT_VIDEO);
 
-	// Select an OpenGL ES 2.0 profile.
+	// Select an OpenGL 2.1 profile.
 	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);

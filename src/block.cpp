@@ -2,6 +2,7 @@
 
 extern GLint attribute_coord;
 extern GLint attribute_t_index;
+extern GLuint shaderProgram;
 
 extern World world;
 
@@ -11,7 +12,6 @@ extern bool started;
 
 std::mutex mtx;
 std::mutex blockMtx;
-ThreadPool thr(50);
 
 Block::Block()
 {
@@ -326,11 +326,12 @@ Chunk::Chunk() {
 }
 
 Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in) {
+	std::cout << "gen" << std::endl;
 	if (started) {
-		buffersToGen.push_back(&vert_vbo);
-		buffersToGen.push_back(&tex_vbo);
-		buffersToGen.push_back(&vert_vbo_water);
-		buffersToGen.push_back(&tex_vbo_water);
+		// buffersToGen.push_back(&vert_vbo);
+		// buffersToGen.push_back(&tex_vbo);
+		// buffersToGen.push_back(&vert_vbo_water);
+		// buffersToGen.push_back(&tex_vbo_water);
 	} else {
 		glGenBuffers(1,&vert_vbo);
 		glGenBuffers(1,&tex_vbo);
@@ -348,15 +349,27 @@ Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in) {
 		}
 	}
 
+	std::pair<block_t, block_sides> b;
+
 	for (float y = 0; y < CHUNK_HEIGHT; y++) {
 		for (float z = 0; z < CHUNK_DEPTH; z++) {
 			for (float x = 0; x < CHUNK_WIDTH; x++) {
-				block[x][y][z] = inWorld->generateBlock(vec3(x+loc.x,y+loc.y,z+loc.z), this);
+				b = inWorld->generateBlock(vec3(x+loc.x,y+loc.y,z+loc.z), this);
+
+				block[x][y][z].type = b.first;
+				block[x][y][z].side = b.second;
+
+				block[x][y][z].loc = vec3(x+loc.x,y+loc.y,z+loc.z);
+
 				block[x][y][z].inChunk = this;
 				block[x][y][z].worldIn = inWorld;
 
 				block[x][y][z].edge = 0;
 
+				/*
+				 * If the block is on the edge of a chunk we need to
+				 * set a flag so the block knows that
+				 */
 				if (!x)block[x][y][z].edge |= LEFT;
 				if (x == CHUNK_WIDTH-1)block[x][y][z].edge |= RIGHT;
 
@@ -366,21 +379,39 @@ Chunk::Chunk(vec3 l, World *in):loc(l), inWorld(in) {
 				if (!z)block[x][y][z].edge |= NEAR;
 				if (z == CHUNK_DEPTH-1)block[x][y][z].edge |= FAR;
 
-				//std::cout << "Edge:" << block[x][y][z].edge << std::endl;
 			}
 		}
 	}
+	std::cout << "end gen" << std::endl;
 }
 
 void Chunk::updateBlocks()
 {
+	std::cout << "update" << std::endl;
+
 	std::vector<std::pair<vec3,vec2>>qwer;
+
+	if (!vertex.empty())
+		vertex.clear();
+	if (!vertex_water.empty())
+		vertex_water.clear();
+
+	if (!tex_coord.empty())
+		tex_coord.clear();
+	if (!tex_coord_water.empty())
+		tex_coord_water.clear();
+
+
 	for (float y = 0; y <= highest; y++) {
 		for (float z = 0; z < CHUNK_DEPTH; z++) {
 			for (float x = 0; x < CHUNK_WIDTH; x++) {
+
 				block[x][y][z].inChunk = this;
 				block[x][y][z].worldIn = inWorld;
+
+				// only update its vectors if it is not air
 				qwer = block[x][y][z].updateFaces(false);
+
 				if (block[x][y][z].type == LIQUID) {
 					for (auto &q : qwer) {
 						vertex_water.push_back(q.first);
@@ -399,7 +430,8 @@ void Chunk::updateBlocks()
 	}
 
 	if (started) {
-		chunkPtrs.push_back(this);
+		//chunkPtrs.push_back(this);
+		canRender = false;
 	} else {
 		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
 		glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), &vertex[0], GL_STATIC_DRAW);
@@ -422,32 +454,41 @@ void Chunk::updateBlocks()
 	glDrawElements(GL_TRIANGLES, size/sizeof(GLushort), GL_UNSIGNED_SHORT, 0);*/
 }
 
-void Chunk::render()
+int Chunk::render()
 {
-	if (!canRender)return;
+	if (!canRender)return 0;
+
 	glBindBuffer(GL_ARRAY_BUFFER, tex_vbo);
+	glBufferData(GL_ARRAY_BUFFER, tex_coord.size() * sizeof(vec2), &tex_coord[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(attribute_t_index, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+	glBufferData(GL_ARRAY_BUFFER, vertex.size() * sizeof(vec3), &vertex[0], GL_STATIC_DRAW);
 	glVertexAttribPointer(attribute_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);
 
+	return 1;
 }
 
-void Chunk::renderL()
+int Chunk::renderL()
 {
-	if (!canRender)return;
+	if (!canRender)return 0;
+
 	glBindBuffer(GL_ARRAY_BUFFER, tex_vbo_water);
+	glBufferData(GL_ARRAY_BUFFER, tex_coord_water.size() * sizeof(vec2), &tex_coord_water[0], GL_STREAM_DRAW);
 	glVertexAttribPointer(attribute_t_index, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo_water);
+	glBufferData(GL_ARRAY_BUFFER, vertex_water.size() * sizeof(vec3), &vertex_water[0], GL_STREAM_DRAW);
 	glVertexAttribPointer(attribute_coord, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements_water);
+
+	return 1;
 }
 
 World::World()
 {
-
+ // we don't want to do anything here
 }
 
 float World::noise2D(float x, float y, int octaves, float persistance)
@@ -465,9 +506,9 @@ float World::noise2D(float x, float y, int octaves, float persistance)
 
 const int SEA = 64;
 
-Block World::generateBlock(vec3 l, Chunk *ptr)
+std::pair<block_t, block_sides> World::generateBlock(vec3 l, Chunk *ptr)
 {
-	Block b;
+	std::pair<block_t, block_sides> b;
 
 	// determine the height of the blocks
 	float n = noise2D((l.x) / 256.0, (l.z) / 256.0, 3, 0.8) * 4;
@@ -477,29 +518,27 @@ Block World::generateBlock(vec3 l, Chunk *ptr)
 	// if the current block is less than the height described
 	// we will make it solid
 	if (l.y <= h) {
-		b.type = SOLID;
+		b.first = SOLID;
 		if (l.y == h) {
-			b.side = block_sides(vec2(0,1),vec2(0,2),vec2(0,0)); //grass
+			b.second = block_sides(vec2(0,1),vec2(0,2),vec2(0,0)); //grass
 		} else {
-			b.side = block_sides(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
+			b.second = block_sides(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
 		}
 	} else {
-		b.type = AIR;
+		b.first = AIR;
 	}
 
 	// if a block is air, and it's less than the sea level
 	// we make it the sea
-	if (b.type == AIR && l.y <= SEA) {
-		b.type = LIQUID;
-		b.side = block_sides(vec2(3,2),vec2(3,2),vec2(3,2)); //water
+	if (b.first == AIR && l.y <= SEA) {
+		b.first = LIQUID;
+		b.second = block_sides(vec2(3,2),vec2(3,2),vec2(3,2)); //water
 	}
 
 	// if we gave a chunk, then we update the highest block
 	// in the chunk, this will make chunk update times faster
 	if (ptr)
-		if (l.y > ptr->highest)ptr->highest = l.y;
-
-	b.loc = l;
+		if (l.y > ptr->highest && b.first != AIR)ptr->highest = l.y;
 
 	return b;
 }
@@ -514,11 +553,15 @@ void World::createChunk(vec3 l)
 
 void World::updateChunks()
 {
+	int ud = 0;
+	std::cout << "Updating: " << chunk.size() << " chunks!" << std::endl;
 	for (auto &c : chunk) {
 		c.second.inWorld = this;
 		c.second.updateBlocks();
+		ud++;
 		//thr.Enqueue([&]{c.second.updateBlocks();});
 	}
+	std::cout << ud << " chunks updated!" << std::endl;
 }
 
 void World::updateChunk(vec3 l)

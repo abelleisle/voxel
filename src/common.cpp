@@ -11,7 +11,3 @@ vec3 vec3FromHash(long long hash) {
 	lo.x = (hash >>= 16) & 0xff;
 	return lo;
 }
-
-float blockIndex(uint id, uint side) {
-	return id +(side/10.0f);
-}

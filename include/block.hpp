@@ -107,8 +107,8 @@ public:
 	Chunk(vec3 l,World *in);
 	Chunk();
 	~Chunk();
-	void render();
-	void renderL();
+	int render();
+	int renderL();
 
 	void updateBlocks();
 };
@@ -128,7 +128,7 @@ public:
 	Chunk* chunkAt(vec3 l);
 	bool blockIsAir(vec3 l);
 
-	Block generateBlock(vec3 l, Chunk *ptr);
+	std::pair<block_t, block_sides> generateBlock(vec3 l, Chunk *ptr);
 	float noise2D(float x, float y, int octaves, float persistance);
 
 };
