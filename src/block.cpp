@@ -506,6 +506,44 @@ float World::noise2D(float x, float y, int octaves, float persistance)
 
 const int SEA = 64;
 
+uint8_t World::generateBlock(vec3 l)
+{
+	uint8_t id;
+	block_t type;
+
+	// determine the height of the blocks
+	float n = noise2D((l.x) / 256.0, (l.z) / 256.0, 3, 0.8) * 4;
+	int h = n * 2;
+	h += SEA;
+
+	// if the current block is less than the height described
+	// we will make it solid
+	if (l.y <= h) {
+		type = SOLID;
+		if (l.y == h) {
+			id = blockData.grass; //b.second = block_sides(vec2(0,1),vec2(0,2),vec2(0,0)); //grass
+		} else {
+			id = blockData.dirt; //b.second = block_sides(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
+		}
+	} else {
+		type = AIR;
+	}
+
+	// if a block is air, and it's less than the sea level
+	// we make it the sea
+	if (type == AIR && l.y <= SEA) {
+		type = LIQUID;
+		id = blockData.water; //b.second = block_sides(vec2(3,2),vec2(3,2),vec2(3,2)); //water
+	}
+
+	// if we gave a chunk, then we update the highest block
+	// in the chunk, this will make chunk update times faster
+	//if (ptr)
+	//	if (l.y > ptr->highest && b.first != AIR)ptr->highest = l.y;
+
+	return id;
+}
+
 std::pair<block_t, block_sides> World::generateBlock(vec3 l, Chunk *ptr)
 {
 	std::pair<block_t, block_sides> b;

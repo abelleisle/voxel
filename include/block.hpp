@@ -19,13 +19,46 @@ const float blockBlocky = 3.0f;
 class Chunk;
 class World;
 
-
 enum block_t{
 	AIR,
 	SOLID,
 	GLASS,
 	LIQUID
 };
+
+/*std::unordered_map<std::string, uint8_t> block_map;
+
+uint8_t addBlockID(std::string s)
+{
+	block_map.emplace(s,block_map.size());
+	return (uint8_t)block_map.size()-1;	
+}
+
+uint8_t addBlockIDWithID(std::string s, uint8_t id)
+{
+	block_map.emplace(s,id);
+	return (uint8_t)id;	
+}
+
+uint8_t getBlockID(std::string s)
+{
+	uint8_t id;
+	try {
+		id = block_map.at(s);
+	} catch (std::out_of_range &oor) {
+		return 0;
+	}
+	return id;
+}*/
+
+struct BlockData {
+	uint8_t air = 0;
+	uint8_t stone = 1;
+	uint8_t cobblestone = 2;
+	uint8_t dirt = 3;
+	uint8_t grass = 4;
+	uint8_t water = 5; 	
+} blockData;
 
 //image id
 //first coord is where
@@ -83,6 +116,7 @@ public:
 class Chunk{
 public:
 	//std::unordered_map<uint, Block>block;
+	uint8_t new_block[CHUNK_WIDTH][CHUNK_HEIGHT][CHUNK_DEPTH];
 	std::vector<std::vector<std::vector<Block>>>block;
 
 	GLuint vert_vbo, vert_vbo_water;
@@ -128,6 +162,7 @@ public:
 	Chunk* chunkAt(vec3 l);
 	bool blockIsAir(vec3 l);
 
+	uint8_t generateBlock(vec3 l);
 	std::pair<block_t, block_sides> generateBlock(vec3 l, Chunk *ptr);
 	float noise2D(float x, float y, int octaves, float persistance);
 
