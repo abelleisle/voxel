@@ -25,23 +25,25 @@ GLuint blockTexture;
 glm::vec3 cameraPos;
 glm::vec3 cameraRot;
 glm::vec3 angle;
+vec2 screen;
 
 // our world variable
 // TODO, change this
-World world;
+//WORLD
+SuperChunk sc;
 
 /*
  *	Global variables used to store our buffers for the main loop
  *	to generate. We need to do this because opengl's context is
  *	in the main thread.
  */
-std::vector<GLuint*>buffersToGen;
+//std::vector<GLuint*>buffersToGen;
 
 /*
  *	Global variable for storing chunks that need the main thread
  *	to do certain operations. ie: opengl, or sdl operations.
  */
-std::vector<Chunk*>chunkPtrs;
+//std::vector<Chunk*>chunkPtrs;
 
 // tells us if we have started the main loop
 bool started = false;
@@ -74,13 +76,8 @@ static int init_resources(){
 	cameraPos = glm::vec3(0,2.0,10.0);
 	cameraRot = glm::vec3(0,0,0);
 
-	for (float x = -32; x <= 32; x+=16) {
-		for (float z = -32; z <= 32; z+=16) {
-			world.createChunk(vec3(x,0,z));
-		}
-	}
-	world.updateChunks();
-
+	// GENERATE HERE
+	
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
 
 	glUseProgram(shaderProgram);
@@ -94,12 +91,10 @@ static int init_resources(){
 	return 1;
 }
 
-void render(void){
+static void render(void){
 	cameraRot.x = sinf(angle.x) * cosf(angle.y);
 	cameraRot.y = sinf(angle.y);
 	cameraRot.z = cosf(angle.x) * cosf(angle.y);
-
-	//float ratio = (screen.x >= screen.y ? screen.x / screen.y : screen.y / screen.x);
 
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos+cameraRot, glm::vec3(0.0f, 1.0f, 0.0f));
 	glm::mat4 projection = glm::perspective(45.0f, 1.0f*(screen.x / screen.y), 0.01f, 2048.0f);
@@ -112,17 +107,13 @@ void render(void){
 
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_POLYGON_OFFSET_FILL);
 
 	//glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
 	glEnableVertexAttribArray(attribute_t_index);
 
-	for(auto &c : world.chunk){
-		c.second.render();
-	}
-	for(auto &c : world.chunk){
-		c.second.renderL();
-	}
+	//LOOP CHUNKS
 
 	glDisableVertexAttribArray(attribute_coord);
 	glDisableVertexAttribArray(attribute_t_index);
@@ -131,42 +122,6 @@ void render(void){
 }
 
 void logic(){
-	static vec3 buf;
-
-	buf.x = floor(cameraPos.x/CHUNK_WIDTH) * CHUNK_WIDTH;
-	// use this if world height is made up of multiple chunks
-	//buf.y = floor(cameraPos.y/CHUNK_HEIGHT) * CHUNK_HEIGHT;
-
-	// use this if world height is only made up of 1 chunk
-	buf.y = 0;
-	buf.z = floor(cameraPos.z/CHUNK_DEPTH) * CHUNK_DEPTH;
-
-	unsigned long long hash = vec3Hash(buf);
-
-	try{
-		world.chunk.at(hash);
-		//std::cout << "in" << std::endl;
-	}catch(const std::out_of_range& oor){
-		//std::cout << "out" << std::endl;
-		world.createChunk(buf);
-		//world.updateChunk(buf);
-
-		//chunkPtrs.push_back(world.chunkAt(buf));
-
-		//world.updateChunk(vec3(buf.x+CHUNK_WIDTH,buf.y,buf.z));
-		//world.updateChunk(vec3(buf.x-CHUNK_WIDTH,buf.y,buf.z));
-		//world.updateChunk(vec3(buf.x,buf.y,buf.z+CHUNK_DEPTH));
-		//world.updateChunk(vec3(buf.x,buf.y,buf.z-CHUNK_DEPTH));
-
-		//threadMtx.lock();
-		//threadMtx.unlock();
-	}
-
-	/*for(auto &c : world.chunk){
-		if(sqrt(pow(c.second.loc.x - buf.x,2) + pow(c.second.loc.z - buf.z,2)) > 64){
-			world.chunk.erase(world.chunk.find(c.second.hash));
-		}
-	}*/
 
 }
 
@@ -220,7 +175,7 @@ void mainLoop(SDL_Window *w){
 		//}
 		//buffersToGen.clear();
 
-		for(auto &chunkPtr : chunkPtrs){
+		/*for(auto &chunkPtr : chunkPtrs){
 
 			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
 			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
@@ -238,7 +193,7 @@ void mainLoop(SDL_Window *w){
 		}
 		chunkPtrs.clear();
 		//threadMtx.unlock();
-
+		*/
 		float sx = 2.0 / screen.x;
 		float sy = 2.0 / screen.y;
 

@@ -12,6 +12,8 @@ extern glm::vec3 cameraPos;
 extern glm::vec3 cameraRot;
 extern glm::vec3 angle;
 
+extern vec2 screen;
+
 float front = .5;
 float side = .3;
 
@@ -284,11 +286,11 @@ namespace ui{
 
     void reshape(SDL_Window *window, int w, int h)
     {
-        screen.x = w;
+        (void)window;
+		screen.x = w;
         screen.y = h;
         glViewport(0, 0, w, h);
-        SDL_SetWindowSize(window,w,h);
-    }
+	}
 
     void handleEvents(SDL_Window *window, float dt)
     {
