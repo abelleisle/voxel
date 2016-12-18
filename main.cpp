@@ -79,7 +79,7 @@ static int init_resources(){
 	sc = new SuperChunk();
 
 
-	blockTexture = Texture::loadTexture("assets/blockSheet.png");
+	blockTexture = Texture::loadTexture("assets/blockStrip.png");
 
 	glUseProgram(shaderProgram);
 

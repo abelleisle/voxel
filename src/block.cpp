@@ -117,8 +117,8 @@ void Chunk::updateBlocks()
 	//fillvbo = true;
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 	
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -202,8 +202,7 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		//std::thread([&]{updateBlocks();}).detach();
-		updateBlocks();
+		std::thread([&]{updateBlocks();}).detach();
 	}
 
 	if (fillvbo) {
