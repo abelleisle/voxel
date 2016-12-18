@@ -48,14 +48,18 @@ struct BlockData {
 class Chunk{
 public:
 	uint8_t block[CHUNK_WIDTH][CHUNK_HEIGHT][CHUNK_DEPTH];
+	Chunk *left, *right, *above, *below, *front, *behind; 
 	vec3 loc;
 
 	GLuint vert_vbo;
 
-	int elements = 0, elements_water = 0;
-	int highest = 0;
-	bool canRender = false;
+	bool init;
+	bool updated;
+	bool fillvbo;
+	int elements;
+	int highest;
 
+	void generate(uint64_t seed);
 	void updateBlocks();
 
 	int render();
@@ -67,8 +71,15 @@ public:
 
 class SuperChunk{
 public:
-	Chunk chunk[SUPER_WIDTH][SUPER_HEIGHT][SUPER_DEPTH];
+	Chunk *chunk[SUPER_WIDTH][SUPER_HEIGHT][SUPER_DEPTH];
+	vec3 loc;
+	uint64_t seed = 0;
 
+	int render(const glm::mat4 &pv);
+
+	SuperChunk();
+	SuperChunk(vec3);
+	~SuperChunk();
 };
 
 //ID

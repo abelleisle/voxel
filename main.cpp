@@ -15,7 +15,7 @@ bool logicIsDone = false;
 // stores the shaders information
 GLuint shaderProgram;
 // stores the locations of the attributes in the shader
-GLint attribute_coord, attribute_t_index;
+GLint attribute_coord;
 // stores the location of the uniforms in the shader
 GLint uniform_mvp, uniform_sampler;
 // store the location of the block texture sheet we use
@@ -30,7 +30,7 @@ vec2 screen;
 // our world variable
 // TODO, change this
 //WORLD
-SuperChunk sc;
+SuperChunk *sc;
 
 /*
  *	Global variables used to store our buffers for the main loop
@@ -59,7 +59,6 @@ static int init_resources(){
 		return 0;
 
 	attribute_coord = get_attrib(shaderProgram, "coord");
-	attribute_t_index = get_attrib(shaderProgram, "textureCoord");
 	uniform_mvp = get_uniform(shaderProgram, "mvp");
 	uniform_sampler = get_uniform(shaderProgram, "texture");
 
@@ -77,7 +76,9 @@ static int init_resources(){
 	cameraRot = glm::vec3(0,0,0);
 
 	// GENERATE HERE
-	
+	sc = new SuperChunk();
+
+
 	blockTexture = Texture::loadTexture("assets/blockSheet.png");
 
 	glUseProgram(shaderProgram);
@@ -111,12 +112,11 @@ static void render(void){
 
 	//glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
-	glEnableVertexAttribArray(attribute_t_index);
 
 	//LOOP CHUNKS
+	sc->render(mvp);
 
 	glDisableVertexAttribArray(attribute_coord);
-	glDisableVertexAttribArray(attribute_t_index);
 
 	glUseProgram(0);
 }
@@ -242,6 +242,7 @@ int main(/*int argc, char *argv[]*/){
 		SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
+	SDL_GLContext contex2 = SDL_GL_CreateContext(window);
 
 	GLenum err;
 	glewExperimental = GL_TRUE;
@@ -265,6 +266,7 @@ int main(/*int argc, char *argv[]*/){
 	glEnable(GL_DEPTH_TEST);
 	//glDepthFunc(GL_LESS);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	
 	mainLoop(window);
 
 	free_resources();

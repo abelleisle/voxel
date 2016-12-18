@@ -1,11 +1,10 @@
-attribute vec3 coord;
-attribute vec2 textureCoord;
+attribute vec4 coord;
 
 uniform mat4 mvp;
 
-varying vec2 texCoord;
+varying vec4 texCoord;
 
 void main(void) {
-    texCoord = textureCoord;
+    texCoord = coord;
     gl_Position = mvp * vec4(coord.xyz, 1.0);
 }

@@ -38,9 +38,9 @@ const int CHUNK_WIDTH = 16;
 const int CHUNK_HEIGHT = 32;
 const int CHUNK_DEPTH = 16;
 
-const int SUPER_WIDTH = 4;
+const int SUPER_WIDTH = 8;
 const int SUPER_HEIGHT = 2;
-const int SUPER_DEPTH = 4;
+const int SUPER_DEPTH = 8;
 
 const int CHUNK_RAD = 12;
 
