@@ -242,7 +242,6 @@ int main(/*int argc, char *argv[]*/){
 		SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL);
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
-	SDL_GLContext contex2 = SDL_GL_CreateContext(window);
 
 	GLenum err;
 	glewExperimental = GL_TRUE;

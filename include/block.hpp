@@ -49,6 +49,7 @@ class Chunk{
 public:
 	uint8_t block[CHUNK_WIDTH][CHUNK_HEIGHT][CHUNK_DEPTH];
 	Chunk *left, *right, *above, *below, *front, *behind; 
+	byte4 vertexdata[CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18];
 	vec3 loc;
 
 	GLuint vert_vbo;
