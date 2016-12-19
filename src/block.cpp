@@ -271,6 +271,7 @@ uint8_t generateBlock(vec3 l)
 
 	return id;
 }
+
 /*
  * DESTRUCTORS
  */
