@@ -25,7 +25,7 @@ SuperChunk::SuperChunk(vec3 l) : loc(l)
 	for (int x = 0; x < SUPER_WIDTH; x++) {
 		for (int y = 0; y < SUPER_HEIGHT; y++) {
 			for (int z = 0; z < SUPER_DEPTH; z++) {
-				chunk[x][y][z] = new Chunk(vec3(loc.x + x*CHUNK_WIDTH, loc.y + y*CHUNK_HEIGHT, loc.z + z*CHUNK_DEPTH));
+				chunk[x][y][z] = new Chunk(vec3(loc.x + x, loc.y + y, loc.z + z));
 			}
 		}
 	}
@@ -79,7 +79,7 @@ void Chunk::generate(uint64_t seed)
 	for (int y = 0; y < CHUNK_HEIGHT; y++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
 			for (int x = 0; x < CHUNK_WIDTH; x++) {
-				block[x][y][z] = generateBlock(vec3(x+loc.x,y+loc.y,z+loc.z));
+				block[x][y][z] = generateBlock(vec3(x+(loc.x*CHUNK_WIDTH),y+(loc.y*CHUNK_HEIGHT),z+(loc.z*CHUNK_DEPTH)));
 			}
 		}
 	}
@@ -111,14 +111,14 @@ void Chunk::updateBlocks()
 	
 	elements = i;
 
-	std::copy(std::begin(vertex), std::end(vertex), std::begin(vertexdata));
+	//std::copy(std::begin(vertex), std::end(vertex), std::begin(vertexdata));
 	
 	updated = false;
 	//fillvbo = true;
 
 
-	//glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 	
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -134,7 +134,7 @@ int SuperChunk::render(const glm::mat4 &pv)
 	for (int x = 0; x < SUPER_WIDTH; x++) {
 		for (int y = 0; y < SUPER_HEIGHT; y++) {
 			for (int z = 0; z < SUPER_DEPTH; z++) {
-				glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(chunk[x][y][z]->loc.x, chunk[x][y][z]->loc.y, chunk[x][y][z]->loc.z));
+				glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(chunk[x][y][z]->loc.x * CHUNK_WIDTH, chunk[x][y][z]->loc.y * CHUNK_HEIGHT, chunk[x][y][z]->loc.z * CHUNK_DEPTH));
 				glm::mat4 mvp = pv * model;
 
 				// Is this chunk on the screen?
@@ -202,7 +202,8 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		std::thread([&]{updateBlocks();}).detach();
+		//std::thread([&]{updateBlocks();}).detach();
+		updateBlocks();
 	}
 
 	if (fillvbo) {
@@ -212,7 +213,6 @@ int Chunk::render()
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 	glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);
 
