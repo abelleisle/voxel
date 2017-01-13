@@ -111,14 +111,14 @@ void Chunk::updateBlocks()
 	
 	elements = i;
 
-	//std::copy(std::begin(vertex), std::end(vertex), std::begin(vertexdata));
+	std::copy(std::begin(vertex), std::end(vertex), std::begin(vertexdata));
 	
 	updated = false;
 	//fillvbo = true;
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 	
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -202,8 +202,8 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		//std::thread([&]{updateBlocks();}).detach();
-		updateBlocks();
+		std::thread([&]{updateBlocks();}).detach();
+		//updateBlocks();
 	}
 
 	if (fillvbo) {
@@ -213,6 +213,7 @@ int Chunk::render()
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 	glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);
 
