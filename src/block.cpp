@@ -196,14 +196,22 @@ int SuperChunk::render(const glm::mat4 &pv)
 	return 1;
 }
 
+void glError() {
+	// check OpenGL error
+	GLenum err;
+	while ((err = glGetError()) != GL_NO_ERROR) {
+		cerr << "OpenGL error: " << err << endl;
+	}
+}
+
 int Chunk::render()
 {
 	if(!init)
 		return 0;
 
 	if (updated) {
-		std::thread([&]{updateBlocks();}).detach();
-		//updateBlocks();
+		//std::thread([&]{updateBlocks();}).detach();
+		updateBlocks();
 	}
 
 	if (fillvbo) {
@@ -211,9 +219,10 @@ int Chunk::render()
 		glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 		fillvbo = false;
 	}
-
+	
 	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), vertexdata, GL_STATIC_DRAW);
+	
 	glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);
 

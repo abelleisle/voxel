@@ -102,22 +102,21 @@ static void render(void){
 	//glm::mat4 projection = glm::ortho(0,screen.x,0,screen.y,0.01f, 2048.0f);
 
 	glm::mat4 mvp = projection * view;
-
-	glUseProgram(shaderProgram);
-	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
-
+	
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_POLYGON_OFFSET_FILL);
+	
+	glUseProgram(shaderProgram);
+	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
 
-	//glUseProgram(shaderProgram);
 	glEnableVertexAttribArray(attribute_coord);
-
+	
 	//LOOP CHUNKS
 	sc->render(mvp);
 
 	glDisableVertexAttribArray(attribute_coord);
-
+	
 	glUseProgram(0);
 }
 
@@ -169,31 +168,6 @@ void mainLoop(SDL_Window *w){
 
 		ui::handleEvents(w, deltaTime);
 
-		//threadMtx.lock();
-		//for(auto &b : buffersToGen){
-			//glGenBuffers(1,b);
-		//}
-		//buffersToGen.clear();
-
-		/*for(auto &chunkPtr : chunkPtrs){
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex.size() * sizeof(vec3), &chunkPtr->vertex[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord.size() * sizeof(vec2), &chunkPtr->tex_coord[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->vert_vbo_water);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->vertex_water.size() * sizeof(vec3), &chunkPtr->vertex_water[0], GL_STATIC_DRAW);
-
-			glBindBuffer(GL_ARRAY_BUFFER, chunkPtr->tex_vbo_water);
-			glBufferData(GL_ARRAY_BUFFER, chunkPtr->tex_coord_water.size() * sizeof(vec2), &chunkPtr->tex_coord_water[0], GL_STATIC_DRAW);
-
-			chunkPtr->canRender = true;
-		}
-		chunkPtrs.clear();
-		//threadMtx.unlock();
-		*/
 		float sx = 2.0 / screen.x;
 		float sy = 2.0 / screen.y;
 
