@@ -16,6 +16,17 @@ std::mutex blockMtx;
 
 BlockData blockData;
 
+float textureloc(float id) {
+	if (id < 0.0f) { //sides
+		uint8_t sides[] = {0, 1, 2, 3, 15, 5};
+		return -sides[(uint)-id];
+	} else { //top and bottom
+		uint8_t tops[] = {0, 1, 2, 3, 4, 5};
+		return tops[(uint)id];
+	}
+	return 0;
+}
+
 /*
  *	CONSTRUCTORS
  */
@@ -87,6 +98,22 @@ void Chunk::generate(uint64_t seed)
 	}).detach();
 }
 
+uint8_t Chunk::get(int x, int y, int z) const{
+	if (x < 0)
+		return left ? left->get(x + CHUNK_WIDTH, y, z) : 0;
+	if (x >= CHUNK_WIDTH)
+	   	return right ? right->get(x - CHUNK_WIDTH, y, z) : 0;
+	if (y < 0)
+		return below ? below->get(x, y + CHUNK_HEIGHT, z) : 0;
+	if (y >= CHUNK_HEIGHT)
+		return above ? above->get(x, y - CHUNK_HEIGHT, z) : 0;	
+	if (z < 0)
+		return front ? front->get(x, y, z + CHUNK_DEPTH) : 0;
+	if (z >= CHUNK_DEPTH)
+		return behind ? behind->get(x, y, z - CHUNK_DEPTH) : 0;	
+	return block[x][y][z];
+}
+
 void Chunk::updateBlocks()
 {
 	byte4 vertex[CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18];
@@ -95,14 +122,67 @@ void Chunk::updateBlocks()
 		for (int y = 0; y < CHUNK_HEIGHT; y++) {
 			for (int z = 0; z < CHUNK_DEPTH; z++) {
 				if (block[x][y][z]) {
-					if (y < CHUNK_HEIGHT-1 && !block[x][y+1][z]) {
-						vertex[i++] = byte4(x,	y,	z,	block[x][y][z]);
-						vertex[i++] = byte4(x+1,y,	z,	block[x][y][z]);
-						vertex[i++] = byte4(x+1,y,	z+1,block[x][y][z]);
+					if (get(x+1, y, z) && z != 0 && get(x, y, z) == get(x, y, z-1)) {
+						vertex[i-5] = byte4(x, y, 	z+1, textureloc(-block[x][y][z]));
+						vertex[i-2] = byte4(x, y, 	z+1, textureloc(-block[x][y][z]));
+						vertex[i-1] = byte4(x, y+1, z+1, textureloc(-block[x][y][z]));
+								
+					} else if (!get(x+1, y, z)) {
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
 						
-						vertex[i++] = byte4(x+1,y,	z+1,block[x][y][z]);
-						vertex[i++] = byte4(x,	y,	z,	block[x][y][z]);
-						vertex[i++] = byte4(x,	y,	z+1,block[x][y][z]);
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+					}
+				}
+			}
+		}
+	}
+	
+	for (int x = 0; x < CHUNK_WIDTH; x++) {
+		for (int y = 0; y < CHUNK_HEIGHT; y++) {
+			for (int z = 0; z < CHUNK_DEPTH; z++) {
+				if (block[x][y][z]) {
+					if (!get(x, y+1, z)) {
+						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+					}
+					
+					if (!get(x, y, z+1)) {
+						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
+					}
+					
+					if (!get(x, y, z-1)) {
+						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
+					}
+					
+					if (!get(x-1, y, z)) {
+						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y+1,z+1,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x,y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
 					}
 				}
 			}
@@ -110,15 +190,15 @@ void Chunk::updateBlocks()
 	}
 	
 	elements = i;
-
-	std::copy(std::begin(vertex), std::end(vertex), std::begin(vertexdata));
+	vertexdata = new byte4[elements];
+	std::copy(std::begin(vertex), std::begin(vertex) + elements, &vertexdata[0]);
 	
 	updated = false;
-	//fillvbo = true;
+	fillvbo = true;
 
 
 	//glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), &vertexdata[0], GL_STATIC_DRAW);
 	
 	/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_cube_elements);
 	int size;  glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &size);
@@ -210,18 +290,17 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		//std::thread([&]{updateBlocks();}).detach();
-		updateBlocks();
+		std::thread([&]{updateBlocks();}).detach();
+		//updateBlocks();
 	}
 
 	if (fillvbo) {
 		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
 		glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
 		fillvbo = false;
+	} else {
+		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
 	}
-	
-	glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-	glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), vertexdata, GL_STATIC_DRAW);
 	
 	glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, elements);

@@ -4,10 +4,13 @@ varying vec4 texCoord;
 
 void main(void){
 
-	//side face
-	//vec2 coord2d = vec2((fract(texCoord.x) + texCoord.w) / 16.0, texCoord.z);
-	//top or bottom face
-	vec2 coord2d = vec2((fract(texCoord.x) + texCoord.w) / 16.0f, fract(texCoord.z));
+	vec2 coord2d;
+
+	if (texCoord.w < 0.0f) { //side face
+		coord2d = vec2((fract(texCoord.x + texCoord.z) - texCoord.w) / 16.0f, fract(-texCoord.y));
+	} else { //top or bottom face
+		coord2d = vec2((fract(texCoord.x) + texCoord.w) / 16.0f, fract(texCoord.z));
+	}
 
 	vec4 color = texture2D(texture, coord2d);
 

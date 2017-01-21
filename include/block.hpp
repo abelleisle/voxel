@@ -38,6 +38,8 @@ struct BlockData {
 	uint8_t water = 5; 	
 };
 
+float textureloc(float id);
+
 //image id
 //first coord is where
 //second is either top side or bottom
@@ -49,7 +51,7 @@ class Chunk{
 public:
 	uint8_t block[CHUNK_WIDTH][CHUNK_HEIGHT][CHUNK_DEPTH];
 	Chunk *left, *right, *above, *below, *front, *behind; 
-	byte4 vertexdata[CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18];
+	byte4 *vertexdata;
 	vec3 loc;
 
 	GLuint vert_vbo;
@@ -60,6 +62,7 @@ public:
 	int elements;
 	int highest;
 
+	uint8_t get(int x, int y, int z) const;
 	void generate(uint64_t seed);
 	void updateBlocks();
 
