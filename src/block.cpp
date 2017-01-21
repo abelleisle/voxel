@@ -122,20 +122,6 @@ void Chunk::updateBlocks()
 		for (int y = 0; y < CHUNK_HEIGHT; y++) {
 			for (int z = 0; z < CHUNK_DEPTH; z++) {
 				if (block[x][y][z]) {
-					if (get(x+1, y, z) && z != 0 && get(x, y, z) == get(x, y, z-1)) {
-						vertex[i-5] = byte4(x, y, 	z+1, textureloc(-block[x][y][z]));
-						vertex[i-2] = byte4(x, y, 	z+1, textureloc(-block[x][y][z]));
-						vertex[i-1] = byte4(x, y+1, z+1, textureloc(-block[x][y][z]));
-								
-				}
-			}
-		}
-	}
-	
-	for (int x = 0; x < CHUNK_WIDTH; x++) {
-		for (int y = 0; y < CHUNK_HEIGHT; y++) {
-			for (int z = 0; z < CHUNK_DEPTH; z++) {
-				if (block[x][y][z]) {
 					if (!get(x, y+1, z)) {
 						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
@@ -146,7 +132,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
 					}
 					
-					if (!get(x, y-1, z)) {
+					/*if (!get(x, y-1, z)) {
 						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,z,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
@@ -154,7 +140,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y,z+1,textureloc(block[x][y][z]));
-					}
+					}*/
 					
 					if (!get(x, y, z+1)) {
 						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
