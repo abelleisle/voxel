@@ -127,15 +127,6 @@ void Chunk::updateBlocks()
 						vertex[i-2] = byte4(x, y, 	z+1, textureloc(-block[x][y][z]));
 						vertex[i-1] = byte4(x, y+1, z+1, textureloc(-block[x][y][z]));
 								
-					} else if (!get(x+1, y, z)) {
-						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
-						
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
-					}
 				}
 			}
 		}
@@ -153,6 +144,16 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+					}
+					
+					if (!get(x, y-1, z)) {
+						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,z,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y,z+1,textureloc(block[x][y][z]));
 					}
 					
 					if (!get(x, y, z+1)) {
@@ -173,6 +174,16 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
+					}
+					
+					if (!get(x+1, y, z)) {
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
 					}
 					
 					if (!get(x-1, y, z)) {
