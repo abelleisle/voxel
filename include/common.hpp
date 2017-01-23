@@ -34,15 +34,15 @@
 
 #include <shader_utils.hpp>
 
-const int CHUNK_WIDTH = 16;
-const int CHUNK_HEIGHT = 32;
-const int CHUNK_DEPTH = 16;
+const int CHUNK_WIDTH = 32;
+const int CHUNK_HEIGHT = 64;
+const int CHUNK_DEPTH = 32;
 
-const int SUPER_WIDTH = 32;
-const int SUPER_HEIGHT = 2;
-const int SUPER_DEPTH = 32;
+const int SUPER_WIDTH = 16;
+const int SUPER_HEIGHT = 1;
+const int SUPER_DEPTH = 16;
 
-const int CHUNK_RAD = 12;
+const int CHUNK_RAD = 24;
 
 class vec2{
 public:

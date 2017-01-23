@@ -82,18 +82,47 @@ Chunk::Chunk() : Chunk(vec3(0,0,0)) {}
  *	OTHER FUNCTIONS
  */
 
+const int SEA = 32;
+
 void Chunk::generate(uint64_t seed)
 {
 	std::thread([&]{
 	//TODO Seed
 	(void)seed;
-	for (int y = 0; y < CHUNK_HEIGHT; y++) {
+	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int z = 0; z < CHUNK_DEPTH; z++) {
-			for (int x = 0; x < CHUNK_WIDTH; x++) {
-				block[x][y][z] = generateBlock(vec3(x+(loc.x*CHUNK_WIDTH),y+(loc.y*CHUNK_HEIGHT),z+(loc.z*CHUNK_DEPTH)));
+				
+				// determine the height of the blocks
+				float n = noise2D((x + loc.x * CHUNK_WIDTH) / 256.0, (z + loc.z * CHUNK_DEPTH) / 256.0, 2, 1.2) * 4;
+				int h = n * 2;
+				h += (SEA * 1.15);
+				
+				float dh = rand()%5 + 3;
+
+				for (int y = 0; y < CHUNK_HEIGHT; y++) {
+					int wy = y + loc.y * CHUNK_HEIGHT;
+					block[x][y][z] = blockData.air;	
+
+					// if the current block is ss than the height described
+					// we will make it solid 
+					if (wy <= h) {
+						if (wy == h) {
+							block[x][y][z] = blockData.grass; //b.second = block_sblock[x][y][z]es(vec2(0,1),vec2(0,2),vec2(0,0)); //grass
+						} else if (wy <= h && wy >= h - dh){
+							block[x][y][z] = blockData.dirt; //b.second = block_sblock[x][y][z]es(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
+						} else {
+							block[x][y][z] = blockData.stone;
+						}
+					}
+
+					// if a block is air, and it's s than the sea vel
+					// we make it the sea
+					if (!block[x][y][z] && wy <= SEA) {
+						block[x][y][z] = blockData.water; //b.second = block_sblock[x][y][z]es(vec2(3,2),vec2(3,2),vec2(3,2)); //water
+					}
+				}
 			}
 		}
-	}
 	updated = true;
 	}).detach();
 }
@@ -102,7 +131,7 @@ uint8_t Chunk::get(int x, int y, int z) const{
 	if (x < 0)
 		return left ? left->get(x + CHUNK_WIDTH, y, z) : 0;
 	if (x >= CHUNK_WIDTH)
-	   	return right ? right->get(x - CHUNK_WIDTH, y, z) : 0;
+		return right ? right->get(x - CHUNK_WIDTH, y, z) : 0;
 	if (y < 0)
 		return below ? below->get(x, y + CHUNK_HEIGHT, z) : 0;
 	if (y >= CHUNK_HEIGHT)
@@ -111,6 +140,7 @@ uint8_t Chunk::get(int x, int y, int z) const{
 		return front ? front->get(x, y, z + CHUNK_DEPTH) : 0;
 	if (z >= CHUNK_DEPTH)
 		return behind ? behind->get(x, y, z - CHUNK_DEPTH) : 0;	
+	
 	return block[x][y][z];
 }
 
@@ -122,64 +152,65 @@ void Chunk::updateBlocks()
 		for (int y = 0; y < CHUNK_HEIGHT; y++) {
 			for (int z = 0; z < CHUNK_DEPTH; z++) {
 				if (block[x][y][z]) {
-					if (!get(x, y+1, z)) {
-						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
+
+					if (!get(x-1, y, z)) {
+						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y+1,	z,	textureloc(-block[x][y][z]));
 						
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y,  z+1,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,y+1,z+1,	textureloc(-block[x][y][z]));
+					}
+
+					if (!get(x+1, y, z)) {
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
 					}
 					
-					/*if (!get(x, y-1, z)) {
-						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,z,textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
+					if (!get(x, y-1, z)) {
+						vertex[i++] = byte4(x,	y,	z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
 						
-						vertex[i++] = byte4(x+1,y,z+1,textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x,	y,z,textureloc(block[x][y][z]));
-						vertex[i++] = byte4(x,	y,z+1,textureloc(block[x][y][z]));
-					}*/
+						vertex[i++] = byte4(x+1,y,	z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
+					}
 					
-					if (!get(x, y, z+1)) {
-						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+					if (!get(x, y+1, z)) {
+						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
 						
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
 					}
 					
 					if (!get(x, y, z-1)) {
 						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
-						
-						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
 					}
 					
-					if (!get(x+1, y, z)) {
-						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+					if (!get(x, y, z+1)) {
+						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
+						
+						vertex[i++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
-						
-						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
-					}
-					
-					if (!get(x-1, y, z)) {
-						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,y,	z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,y+1,z+1,textureloc(-block[x][y][z]));
-						
-						vertex[i++] = byte4(x,y+1,z+1,textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,y+1,z,	textureloc(-block[x][y][z]));
-						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
 					}
 				}
 			}
@@ -187,6 +218,9 @@ void Chunk::updateBlocks()
 	}
 	
 	elements = i;
+	if (!elements)
+		return;
+
 	vertexdata = new byte4[elements];
 	std::copy(std::begin(vertex), std::begin(vertex) + elements, &vertexdata[0]);
 	
@@ -230,7 +264,6 @@ int SuperChunk::render(const glm::mat4 &pv)
 					continue;
 			
 				if(d > CHUNK_RAD * sqrt(pow(CHUNK_WIDTH,2)+pow(CHUNK_DEPTH,2))) {
-					chunk[x][y][z]->init = false;
 					continue;
 				}
 
@@ -287,13 +320,13 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		std::thread([&]{updateBlocks();}).detach();
-		//updateBlocks();
+		//std::thread([&]{updateBlocks();}).detach();
+		updateBlocks();
 	}
 
 	if (fillvbo) {
 		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-		glBufferData(GL_ARRAY_BUFFER, elements * sizeof *vertexdata, vertexdata, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), &vertexdata[0], GL_DYNAMIC_DRAW);
 		fillvbo = false;
 	} else {
 		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
@@ -318,12 +351,9 @@ float noise2D(float x, float y, int octaves, float persistance)
 	return sum;
 }
 
-const int SEA = 12;
-
 uint8_t generateBlock(vec3 l)
 {
-	uint8_t id;
-	block_t type;
+	uint8_t id = blockData.air;
 
 	// determine the height of the blocks
 	float n = noise2D((l.x) / 256.0, (l.z) / 256.0, 3, 0.8) * 4;
@@ -333,20 +363,16 @@ uint8_t generateBlock(vec3 l)
 	// if the current block is less than the height described
 	// we will make it solid
 	if (l.y <= h) {
-		type = SOLID;
 		if (l.y == h) {
 			id = blockData.grass; //b.second = block_sides(vec2(0,1),vec2(0,2),vec2(0,0)); //grass
 		} else {
 			id = blockData.dirt; //b.second = block_sides(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
 		}
-	} else {
-		type = AIR;
 	}
 
 	// if a block is air, and it's less than the sea level
 	// we make it the sea
-	if (type == AIR && l.y <= SEA) {
-		type = LIQUID;
+	if (id == blockData.air && l.y <= SEA) {
 		id = blockData.water; //b.second = block_sides(vec2(3,2),vec2(3,2),vec2(3,2)); //water
 	}
 

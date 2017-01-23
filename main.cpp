@@ -72,7 +72,7 @@ static int init_resources(){
 
 	glEnableVertexAttribArray(attribute_coord);
 
-	cameraPos = glm::vec3(0,2.0,10.0);
+	cameraPos = glm::vec3(32.0,64.0,32.0);
 	cameraRot = glm::vec3(0,0,0);
 
 	// GENERATE HERE
@@ -87,12 +87,53 @@ static int init_resources(){
 	glBindTexture(GL_TEXTURE_2D,blockTexture);
 	glUniform1f(uniform_sampler,0);
 
+	glPolygonOffset(1, 1);
+	
 	glClearColor(0.6, 0.8, 1.0, 0.0);
 
 	return 1;
 }
 
-static void render(void){
+// TODO make engine for these
+static float fps = 0.0f;
+static float renderTimeAv = 0.0f;
+
+static void drawText(glm::mat4 &mvp, glm::mat4 &view, glm::mat4 &projection) {
+	(void)mvp;
+	(void)view;
+	(void)projection;
+	
+	float sx = 2.0 / screen.x;
+	float sy = 2.0 / screen.y;
+	
+	ui::text::render_text(std::string("FPS: " + std::to_string(int(fps))).c_str(), -1 + 8 * sx, 1 - 16 * sy, sx, sy);
+	ui::text::render_text(std::string("Pos: " + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ", " + std::to_string(cameraPos.z)).c_str(), -1 + 8 * sx, 1 - 36 * sy, sx, sy);
+	ui::text::render_text(std::string("Time to render: " + std::to_string(int(renderTimeAv))).c_str(), -1 + 8 * sx, 1 - 56 * sy, sx, sy);
+}
+
+static void drawWorld(glm::mat4 &mvp, glm::mat4 &view, glm::mat4 &projection) {
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	
+	glUseProgram(shaderProgram);
+
+	glEnableVertexAttribArray(attribute_coord);
+	
+	//LOOP CHUNKS
+	sc->render(mvp);
+
+	glDisableVertexAttribArray(attribute_coord);
+	
+	glDisable(GL_POLYGON_OFFSET_FILL);
+	glDisable(GL_CULL_FACE);
+	glUseProgram(0);
+
+	//TODO
+	(void)view;
+	(void)projection;
+}
+
+static void render(SDL_Window* window) {
 	cameraRot.x = sinf(angle.x) * cosf(angle.y);
 	cameraRot.y = sinf(angle.y);
 	cameraRot.z = cosf(angle.x) * cosf(angle.y);
@@ -105,19 +146,15 @@ static void render(void){
 	
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	
-	glUseProgram(shaderProgram);
 	glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
-
-	glEnableVertexAttribArray(attribute_coord);
 	
-	//LOOP CHUNKS
-	sc->render(mvp);
+	// draw the blocks in the world
+	drawWorld(mvp, view, projection);
 
-	glDisableVertexAttribArray(attribute_coord);
-	
-	glUseProgram(0);
+	// draw text in the world
+	drawText(mvp, view, projection);
+
+	SDL_GL_SwapWindow(window);
 }
 
 void logic(){
@@ -147,10 +184,8 @@ void mainLoop(SDL_Window *w){
 	static float beforeRender;
 
 	static float fpsTime;
-	static float fps;
 
 	static float renderTime = 0.0f;
-	static float renderTimeAv = 0.0f;
 	static int renderLoops = 0;
 
 	if(!currentTime)						// Initialize currentTime if it hasn't been
@@ -168,18 +203,9 @@ void mainLoop(SDL_Window *w){
 
 		ui::handleEvents(w, deltaTime);
 
-		float sx = 2.0 / screen.x;
-		float sy = 2.0 / screen.y;
-
 		beforeRender = SDL_GetTicks();
 
-		render();
-
-		ui::text::render_text(std::string("FPS: " + std::to_string(int(fps))).c_str(), -1 + 8 * sx, 1 - 16 * sy, sx, sy);
-		ui::text::render_text(std::string("Pos: " + std::to_string(cameraPos.x) + ", " + std::to_string(cameraPos.y) + ", " + std::to_string(cameraPos.z)).c_str(), -1 + 8 * sx, 1 - 36 * sy, sx, sy);
-		ui::text::render_text(std::string("Time to render: " + std::to_string(int(renderTimeAv))).c_str(), -1 + 8 * sx, 1 - 56 * sy, sx, sy);
-
-		SDL_GL_SwapWindow(w);
+		render(w);
 
 		fpsTime += deltaTime;
 		renderTime += int(SDL_GetTicks() - beforeRender);
@@ -193,6 +219,9 @@ void mainLoop(SDL_Window *w){
 			renderTime = 0.0f;
 
 			renderLoops = 0;
+			if (false) {
+				std::cout << fps << ", " << renderTimeAv << std::endl;
+			}
 		}
 	}
 }

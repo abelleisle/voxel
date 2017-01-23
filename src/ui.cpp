@@ -347,7 +347,7 @@ namespace ui{
                         downMov = true;
                     }
                     if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        front*=2.0f;
+                        front*=5.0f;
                         side*=2.0f;
                     }
                     break;
@@ -371,7 +371,7 @@ namespace ui{
                         rightMov = false;
                     }
                     if (e.key.keysym.sym == SDLK_LSHIFT) {
-                        front/=2.0f;
+                        front/=5.0f;
                         side/=2.0f;
                     }
 

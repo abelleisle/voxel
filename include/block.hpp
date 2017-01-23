@@ -63,7 +63,7 @@ public:
 	int highest;
 
 	uint8_t get(int x, int y, int z) const;
-	void generate(uint64_t seed);
+	void generate(uint64_t seed = 0);
 	void updateBlocks();
 
 	int render();
