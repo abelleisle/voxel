@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <common.hpp>
 #include <texture.hpp>
+#include <threadpool.hpp>
 
 const float blockBlockx = 5.0f;
 const float blockBlocky = 3.0f;
