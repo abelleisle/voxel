@@ -76,7 +76,7 @@ GLuint create_shader(const char* filename, GLenum type) {
 	GLuint res = glCreateShader(type);
 	const GLchar* sources[] = {
 		// Define GLSL version
-		"#version 140\n"  // OpenGL ES 2.0
+		"#version 130\n"  // OpenGL ES 2.0
 		,
 		// Define default float precision for fragment shaders:
 		(type == GL_FRAGMENT_SHADER) ?

@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <common.hpp>
 #include <texture.hpp>
-#include <threadpool.hpp>
 
 const float blockBlockx = 5.0f;
 const float blockBlocky = 3.0f;
@@ -36,6 +35,8 @@ struct BlockData {
 	uint8_t dirt = 3;
 	uint8_t grass = 4;
 	uint8_t water = 5; 	
+	uint8_t oakLog = 6;
+	uint8_t leaves = 7;
 };
 
 float textureloc(float id);
@@ -52,21 +53,26 @@ public:
 	uint8_t block[CHUNK_WIDTH][CHUNK_HEIGHT][CHUNK_DEPTH];
 	Chunk *left, *right, *above, *below, *front, *behind; 
 	byte4 *vertexdata;
+	byte4 *liquid_vertexdata;
 	vec3 loc;
 
-	GLuint vert_vbo;
+	GLuint vert_vbo, liquid_vert_vbo;
 
 	bool init;
 	bool updated;
 	bool fillvbo;
-	int elements;
+	bool renderLiquids; 
+	int elements, liquid_elements;
 	int highest;
 
 	uint8_t get(int x, int y, int z) const;
+	uint8_t set(int x, int y, int z, uint8_t id);
+	bool blocked(int x, int y, int z, int xt, int yt, int zt) const;
 	void generate(uint64_t seed = 0);
 	void updateBlocks();
 
 	int render();
+	int renderLiquid();
 
 	Chunk();
 	Chunk(vec3);

@@ -12,6 +12,9 @@ void main(void){
 	}
 
 	vec4 color = texture2D(texture, coord2d);
+
+	if (color.w == 0)
+		discard;
     
 	gl_FragColor = color;
 }

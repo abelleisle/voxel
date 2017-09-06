@@ -18,10 +18,10 @@ BlockData blockData;
 
 float textureloc(float id) {
 	if (id < 0.0f) { //sides
-		uint8_t sides[] = {0, 1, 2, 3, 15, 5};
+		uint8_t sides[] = {0, 1, 2, 3, 15, 5, 6, 7};
 		return -sides[(uint)-id];
 	} else { //top and bottom
-		uint8_t tops[] = {0, 1, 2, 3, 4, 5};
+		uint8_t tops[] = {0, 1, 2, 3, 4, 5, 14, 7};
 		return tops[(uint)id];
 	}
 	return 0;
@@ -69,11 +69,12 @@ Chunk::Chunk(vec3 l): loc(l)
 	init = false;
 	updated = false;
 	fillvbo = false;
-	elements = 0;
+	elements = liquid_elements = 0;
 	highest = 0;
 	right = left = above = below = front = behind = 0;
 
 	glGenBuffers(1, &vert_vbo);
+	glGenBuffers(1, &liquid_vert_vbo);
 }
 
 Chunk::Chunk() : Chunk(vec3(0,0,0)) {}
@@ -86,7 +87,7 @@ const int SEA = 32;
 
 void Chunk::generate(uint64_t seed)
 {
-	std::thread([&]{
+	//std::thread([&]{
 	//TODO Seed
 	(void)seed;
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
@@ -99,9 +100,8 @@ void Chunk::generate(uint64_t seed)
 				
 				float dh = rand()%5 + 3;
 
-				for (int y = 0; y < CHUNK_HEIGHT; y++) {
+				for (int y = CHUNK_HEIGHT - 1; y >= 0; y--) {
 					int wy = y + loc.y * CHUNK_HEIGHT;
-					block[x][y][z] = blockData.air;	
 
 					// if the current block is ss than the height described
 					// we will make it solid 
@@ -112,6 +112,26 @@ void Chunk::generate(uint64_t seed)
 							block[x][y][z] = blockData.dirt; //b.second = block_sblock[x][y][z]es(vec2(0,0),vec2(0,0),vec2(0,0)); //dirt
 						} else {
 							block[x][y][z] = blockData.stone;
+						}
+					} else if (wy == h+1 && wy - SEA >= 8) {
+						int t = rand() % 800;
+						if (t == 65) {
+							int th = 4 + (rand() % 4);
+							int lp;
+							for (lp = 0; lp <= th; lp++) {
+								block[x][y+lp][z] = blockData.oakLog;
+							}
+							// Leaves
+							for(int ix = -3; ix <= 3; ix++) {
+								for(int iy = -3; iy <= 3; iy++) {
+									for(int iz = -3; iz <= 3; iz++) {
+										int td = (ix * ix) + (iy * iy) + (iz * iz);
+										if(td < 8 + (rand() & 1) && !get(x + ix, wy + lp + iy, z + iz)) {
+											set(ix + x, iy + lp + y, iz + z, blockData.leaves);
+										}
+									}
+								}
+							}
 						}
 					}
 
@@ -124,7 +144,25 @@ void Chunk::generate(uint64_t seed)
 			}
 		}
 	updated = true;
-	}).detach();
+	//}).detach();
+}
+
+uint8_t Chunk::set(int x, int y, int z, uint8_t id){
+	if (x < 0)
+		return left ? left->set(x + CHUNK_WIDTH, y, z, id) : 0;
+	if (x >= CHUNK_WIDTH)
+		return right ? right->set(x - CHUNK_WIDTH, y, z, id) : 0;
+	if (y < 0)
+		return below ? below->set(x, y + CHUNK_HEIGHT, z, id) : 0;
+	if (y >= CHUNK_HEIGHT)
+		return above ? above->set(x, y - CHUNK_HEIGHT, z, id) : 0;	
+	if (z < 0)
+		return front ? front->set(x, y, z + CHUNK_DEPTH, id) : 0;
+	if (z >= CHUNK_DEPTH)
+		return behind ? behind->set(x, y, z - CHUNK_DEPTH, id) : 0;	
+
+	block[x][y][z] = id;
+	return id;
 }
 
 uint8_t Chunk::get(int x, int y, int z) const{
@@ -144,16 +182,33 @@ uint8_t Chunk::get(int x, int y, int z) const{
 	return block[x][y][z];
 }
 
+bool Chunk::blocked(int x, int y, int z, int xt, int yt, int zt) const{
+	if (!get(x, y, z)) // air is always blocked
+		return true;
+
+	if (!get(xt, yt, zt)) // if the second block is air of course this one won't be blocked
+		return false;
+	
+	if (get(xt, yt, zt) == blockData.leaves) //leaves don't block anything 
+		return false;
+
+	if (get(xt, yt, zt) != blockData.water)
+		return true;
+	
+	return get(xt, yt, zt) == get(x, y, z);
+}
+
 void Chunk::updateBlocks()
 {
-	byte4 vertex[CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18];
-	int i = 0;
+	std::vector<byte4> vertex(CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18);
+	std::vector<byte4> liquid_vertex(CHUNK_WIDTH * CHUNK_DEPTH * CHUNK_HEIGHT * 18);
+	int i = 0, l = 0;
 	for (int x = 0; x < CHUNK_WIDTH; x++) {
 		for (int y = 0; y < CHUNK_HEIGHT; y++) {
 			for (int z = 0; z < CHUNK_DEPTH; z++) {
-				if (block[x][y][z]) {
+				if (block[x][y][z] != blockData.water) {
 
-					if (!get(x-1, y, z)) {
+					if (!blocked(x, y, z, x-1, y, z)) {
 						vertex[i++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,y,	z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,y+1,	z,	textureloc(-block[x][y][z]));
@@ -163,7 +218,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x,y+1,z+1,	textureloc(-block[x][y][z]));
 					}
 
-					if (!get(x+1, y, z)) {
+					if (!blocked(x, y, z, x+1, y, z)) {
 						vertex[i++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
@@ -173,7 +228,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
 					}
 					
-					if (!get(x, y-1, z)) {
+					if (!blocked(x, y, z, x, y-1, z)) {
 						vertex[i++] = byte4(x,	y,	z,	textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,	z,	textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
@@ -183,7 +238,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
 					}
 					
-					if (!get(x, y+1, z)) {
+					if (!blocked(x, y, z, x, y+1, z)) {
 						vertex[i++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
 						vertex[i++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
@@ -193,7 +248,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
 					}
 					
-					if (!get(x, y, z-1)) {
+					if (!blocked(x, y, z, x, y, z-1)) {
 						vertex[i++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
@@ -203,7 +258,7 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
 					}
 					
-					if (!get(x, y, z+1)) {
+					if (!blocked(x, y, z, x, y, z+1)) {
 						vertex[i++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
@@ -212,21 +267,87 @@ void Chunk::updateBlocks()
 						vertex[i++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
 						vertex[i++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
 					}
+				} 
+				else if (block[x][y][z] == blockData.water) {
+					if (!blocked(x, y, z, x-1, y, z)) {
+						liquid_vertex[l++] = byte4(x,y,	z,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,y,	z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,y+1,	z,	textureloc(-block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x,y+1,z,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,y,  z+1,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,y+1,z+1,	textureloc(-block[x][y][z]));
+					}
+
+					if (!blocked(x, y, z, x+1, y, z)) {
+						liquid_vertex[l++] = byte4(x+1,y,	z,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x+1,y+1,z,	textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+					}
+					
+					if (!blocked(x, y, z, x, y-1, z)) {
+						liquid_vertex[l++] = byte4(x,	y,	z,	textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z,	textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x+1,y,	z,	textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z+1,textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y,	z+1,textureloc(block[x][y][z]));
+					}
+					
+					if (!blocked(x, y, z, x, y+1, z)) {
+						liquid_vertex[l++] = byte4(x,	y+1,z,	textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x+1,y+1,z,	textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y+1,z+1,textureloc(block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z+1,textureloc(block[x][y][z]));
+					}
+					
+					if (!blocked(x, y, z, x, y, z-1)) {
+						liquid_vertex[l++] = byte4(x,	y,	z,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x,	y+1,z,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z,textureloc(-block[x][y][z]));
+					}
+					
+					if (!blocked(x, y, z, x, y, z+1)) {
+						liquid_vertex[l++] = byte4(x,	y,	z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
+						
+						liquid_vertex[l++] = byte4(x,	y+1,z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y,	z+1,textureloc(-block[x][y][z]));
+						liquid_vertex[l++] = byte4(x+1,y+1,z+1,textureloc(-block[x][y][z]));
+					}
 				}
 			}
 		}
 	}
 	
 	elements = i;
-	if (!elements)
+	liquid_elements = l;
+	if (!elements && !liquid_elements)
 		return;
 
-	vertexdata = new byte4[elements];
-	std::copy(std::begin(vertex), std::begin(vertex) + elements, &vertexdata[0]);
-	
+	if (elements) {
+		vertexdata = new byte4[elements];
+		std::copy(std::begin(vertex), std::begin(vertex) + elements, &vertexdata[0]);
+	}
+	if (liquid_elements) {
+		liquid_vertexdata = new byte4[liquid_elements];
+		std::copy(std::begin(liquid_vertex), std::begin(liquid_vertex) + liquid_elements, &liquid_vertexdata[0]);
+	}
 	updated = false;
 	fillvbo = true;
-
 
 	//glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
 	//glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), &vertexdata[0], GL_STATIC_DRAW);
@@ -242,11 +363,13 @@ int SuperChunk::render(const glm::mat4 &pv)
 	int ux = -1;
 	int uy = -1;
 	int uz = -1;
+	glm::mat4 model, mvp;
 	for (int x = 0; x < SUPER_WIDTH; x++) {
 		for (int y = 0; y < SUPER_HEIGHT; y++) {
 			for (int z = 0; z < SUPER_DEPTH; z++) {
-				glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(chunk[x][y][z]->loc.x * CHUNK_WIDTH, chunk[x][y][z]->loc.y * CHUNK_HEIGHT, chunk[x][y][z]->loc.z * CHUNK_DEPTH));
-				glm::mat4 mvp = pv * model;
+				chunk[x][y][z]->renderLiquids = false;
+				model = glm::translate(glm::mat4(1.0f), glm::vec3(chunk[x][y][z]->loc.x * CHUNK_WIDTH, chunk[x][y][z]->loc.y * CHUNK_HEIGHT, chunk[x][y][z]->loc.z * CHUNK_DEPTH));
+				mvp = pv * model;
 
 				// Is this chunk on the screen?
 				glm::vec4 center = mvp * glm::vec4(CHUNK_WIDTH / 2, CHUNK_WIDTH / 2, CHUNK_DEPTH / 2, 1);
@@ -280,8 +403,20 @@ int SuperChunk::render(const glm::mat4 &pv)
 				}
 
 				glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+				chunk[x][y][z]->renderLiquids = chunk[x][y][z]->render();
+			}
+		}
+	}
 
-				chunk[x][y][z]->render();
+	for (int x = 0; x < SUPER_WIDTH; x++) {
+		for (int y = 0; y < SUPER_HEIGHT; y++) {
+			for (int z = 0; z < SUPER_DEPTH; z++) {
+				if (chunk[x][y][z]->renderLiquids) {
+					model = glm::translate(glm::mat4(1.0f), glm::vec3(chunk[x][y][z]->loc.x * CHUNK_WIDTH, chunk[x][y][z]->loc.y * CHUNK_HEIGHT, chunk[x][y][z]->loc.z * CHUNK_DEPTH));
+					mvp = pv * model;
+					glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+					chunk[x][y][z]->renderLiquid();
+				}
 			}
 		}
 	}
@@ -306,11 +441,12 @@ int SuperChunk::render(const glm::mat4 &pv)
 	return 1;
 }
 
-void glError() {
+void glError()
+{
 	// check OpenGL error
 	GLenum err;
 	while ((err = glGetError()) != GL_NO_ERROR) {
-		cerr << "OpenGL error: " << err << endl;
+		std::cerr << "OpenGL error: " << err << std::endl;
 	}
 }
 
@@ -320,20 +456,40 @@ int Chunk::render()
 		return 0;
 
 	if (updated) {
-		//std::thread([&]{updateBlocks();}).detach();
-		updateBlocks();
+		std::thread([&]{updateBlocks();}).detach();
+		//updateBlocks();
 	}
 
 	if (fillvbo) {
+		glBindBuffer(GL_ARRAY_BUFFER, liquid_vert_vbo);
+		glBufferData(GL_ARRAY_BUFFER, liquid_elements * sizeof(byte4), &liquid_vertexdata[0], GL_DYNAMIC_DRAW);	
+		glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
+		//glDrawArrays(GL_TRIANGLES, 0, liquid_elements);
+		
 		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
-		glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), &vertexdata[0], GL_DYNAMIC_DRAW);
-		fillvbo = false;
+		glBufferData(GL_ARRAY_BUFFER, elements * sizeof(byte4), &vertexdata[0], GL_DYNAMIC_DRAW);	
+		glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
+		glDrawArrays(GL_TRIANGLES, 0, elements);
+		
 	} else {
-		glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+		if (fillvbo) {
+			fillvbo = false;
+		} else {
+			glBindBuffer(GL_ARRAY_BUFFER, vert_vbo);
+			glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
+			glDrawArrays(GL_TRIANGLES, 0, elements);
+		}
 	}
 	
+	return 1;
+}
+
+int Chunk::renderLiquid()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, liquid_vert_vbo);
+	glBufferData(GL_ARRAY_BUFFER, liquid_elements * sizeof(byte4), &liquid_vertexdata[0], GL_DYNAMIC_DRAW);	
 	glVertexAttribPointer(attribute_coord, 4, GL_BYTE, GL_FALSE, 0, 0);
-	glDrawArrays(GL_TRIANGLES, 0, elements);
+	glDrawArrays(GL_TRIANGLES, 0, liquid_elements);
 
 	return 1;
 }
@@ -396,4 +552,5 @@ SuperChunk::~SuperChunk()
 Chunk::~Chunk()
 {
 	glDeleteBuffers(1, &vert_vbo);
+	glDeleteBuffers(1, &liquid_vert_vbo);
 }
